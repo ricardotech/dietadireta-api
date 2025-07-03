@@ -11,20 +11,20 @@ import {
 } from '../types/enums';
 
 interface GeneratePromptRequest {
-  Peso: string;
-  Altura: string;
-  Idade: string;
-  Objetivo: string;
-  Calorias: string;
-  Genero: string;
-  Horarios: string;
-  nivelAtividade: string;
-  treino: string;
-  cafeDaManha: string;
-  lancheDaManha: string;
-  almoco: string;
-  lancheDaTarde: string;
-  janta: string;
+  weight: string;
+  height: string;
+  age: string;
+  goal: string;
+  calories: string;
+  gender: string;
+  schedule: string;
+  activityLevel: string;
+  workoutPlan: string;
+  breakfast: string;
+  morningSnack: string;
+  lunch: string;
+  afternoonSnack: string;
+  dinner: string;
 }
 
 export const generatePrompt = async (
@@ -33,20 +33,20 @@ export const generatePrompt = async (
 ) => {
   try {
     const {
-      Peso,
-      Altura,
-      Idade,
-      Objetivo,
-      Calorias,
-      Genero,
-      Horarios,
-      nivelAtividade,
-      treino,
-      cafeDaManha,
-      lancheDaManha,
-      almoco,
-      lancheDaTarde,
-      janta
+      weight,
+      height,
+      age,
+      goal,
+      calories,
+      gender,
+      schedule,
+      activityLevel,
+      workoutPlan,
+      breakfast,
+      morningSnack,
+      lunch,
+      afternoonSnack,
+      dinner
     } = request.body;
 
     // Get user ID from JWT token (set by authentication middleware)
@@ -64,20 +64,20 @@ export const generatePrompt = async (
     }
 
     // Update user data with new information
-    userData.peso = parseFloat(Peso);
-    userData.altura = parseFloat(Altura);
-    userData.idade = parseInt(Idade);
-    userData.objetivo = Objetivo as unknown as Objetivo;
-    userData.caloriasDiarias = Calorias as unknown as CaloriasDiarias;
-    userData.genero = Genero as unknown as Genero;
-    userData.horariosParaRefeicoes = Horarios as unknown as HorariosRefeicoesOption;
-    userData.nivelAtividade = nivelAtividade as unknown as NivelAtividade;
-    userData.planoTreino = treino as unknown as TipoPlanoTreino;
-    userData.cafeDaManha = cafeDaManha.split(',').map(item => item.trim());
-    userData.lancheDaManha = lancheDaManha.split(',').map(item => item.trim());
-    userData.almoco = almoco.split(',').map(item => item.trim());
-    userData.lancheDaTarde = lancheDaTarde.split(',').map(item => item.trim());
-    userData.janta = janta.split(',').map(item => item.trim());
+    userData.peso = parseFloat(weight);
+    userData.altura = parseFloat(height);
+    userData.idade = parseInt(age);
+    userData.objetivo = goal as unknown as Objetivo;
+    userData.caloriasDiarias = calories as unknown as CaloriasDiarias;
+    userData.genero = gender as unknown as Genero;
+    userData.horariosParaRefeicoes = schedule as unknown as HorariosRefeicoesOption;
+    userData.nivelAtividade = activityLevel as unknown as NivelAtividade;
+    userData.planoTreino = workoutPlan as unknown as TipoPlanoTreino;
+    userData.cafeDaManha = breakfast.split(',').map((item: string) => item.trim());
+    userData.lancheDaManha = morningSnack.split(',').map((item: string) => item.trim());
+    userData.almoco = lunch.split(',').map((item: string) => item.trim());
+    userData.lancheDaTarde = afternoonSnack.split(',').map((item: string) => item.trim());
+    userData.janta = dinner.split(',').map((item: string) => item.trim());
 
     // Save updated user data
     await userDataRepository.save(userData);
@@ -121,20 +121,20 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
       prompt,
       data: {
         userId: userData.id,
-        peso: userData.peso,
-        altura: userData.altura,
-        idade: userData.idade,
-        objetivo: userData.objetivo,
-        caloriasDiarias: userData.caloriasDiarias,
-        genero: userData.genero,
-        horariosParaRefeicoes: userData.horariosParaRefeicoes,
-        nivelAtividade: userData.nivelAtividade,
-        planoTreino: userData.planoTreino,
-        cafeDaManha: userData.cafeDaManha,
-        lancheDaManha: userData.lancheDaManha,
-        almoco: userData.almoco,
-        lancheDaTarde: userData.lancheDaTarde,
-        janta: userData.janta
+        weight: userData.peso,
+        height: userData.altura,
+        age: userData.idade,
+        goal: userData.objetivo,
+        dailyCalories: userData.caloriasDiarias,
+        gender: userData.genero,
+        mealSchedule: userData.horariosParaRefeicoes,
+        activityLevel: userData.nivelAtividade,
+        workoutPlan: userData.planoTreino,
+        breakfast: userData.cafeDaManha,
+        morningSnack: userData.lancheDaManha,
+        lunch: userData.almoco,
+        afternoonSnack: userData.lancheDaTarde,
+        dinner: userData.janta
       }
     });
   } catch (error) {

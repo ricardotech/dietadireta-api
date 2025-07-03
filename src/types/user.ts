@@ -2,20 +2,20 @@ import { z } from 'zod';
 import { Objetivo, CaloriasDiarias, HorariosRefeicoesOption, Genero, NivelAtividade, TipoPlanoTreino } from './enums';
 
 export const createBodyMeasurementsSchema = z.object({
-  peso: z.number().min(1, 'Weight must be greater than 0'),
-  altura: z.number().min(1, 'Height must be greater than 0'),
-  idade: z.number().min(1, 'Age must be greater than 0'),
-  objetivo: z.nativeEnum(Objetivo),
-  caloriasDiarias: z.nativeEnum(CaloriasDiarias).default(CaloriasDiarias.DESCONHECIDO),
-  horariosParaRefeicoes: z.nativeEnum(HorariosRefeicoesOption).default(HorariosRefeicoesOption.PERSONALIZADO),
-  genero: z.nativeEnum(Genero),
+  weight: z.number().min(1, 'Weight must be greater than 0'),
+  height: z.number().min(1, 'Height must be greater than 0'),
+  age: z.number().min(1, 'Age must be greater than 0'),
+  goal: z.nativeEnum(Objetivo),
+  dailyCalories: z.nativeEnum(CaloriasDiarias).default(CaloriasDiarias.DESCONHECIDO),
+  mealSchedule: z.nativeEnum(HorariosRefeicoesOption).default(HorariosRefeicoesOption.PERSONALIZADO),
+  gender: z.nativeEnum(Genero),
 });
 
 export const updateBodyMeasurementsSchema = createBodyMeasurementsSchema.partial();
 
 export const createUserActivitySchema = z.object({
-  nivelAtividade: z.nativeEnum(NivelAtividade),
-  planoTreino: z.nativeEnum(TipoPlanoTreino),
+  activityLevel: z.nativeEnum(NivelAtividade),
+  workoutPlan: z.nativeEnum(TipoPlanoTreino),
 });
 
 export const updateUserActivitySchema = createUserActivitySchema.partial();
