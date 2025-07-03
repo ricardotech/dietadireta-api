@@ -14,8 +14,8 @@ export const createUserMealSelectionSchema = z.object({
 export const mealItemSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
 });
 
 export const mealItemsResponseSchema = z.array(mealItemSchema);
