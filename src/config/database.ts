@@ -1,5 +1,10 @@
 import { DataSource } from 'typeorm';
 import { UserData } from '../entities/UserData';
+import { BreakfastItem } from '../entities/BreakfastItem';
+import { MorningSnackItem } from '../entities/MorningSnackItem';
+import { LunchItem } from '../entities/LunchItem';
+import { AfternoonSnackItem } from '../entities/AfternoonSnackItem';
+import { DinnerItem } from '../entities/DinnerItem';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -12,6 +17,11 @@ export const AppDataSource = new DataSource({
   logging: process.env.NODE_ENV === 'development',
   entities: [
     UserData,
+    BreakfastItem,
+    MorningSnackItem,
+    LunchItem,
+    AfternoonSnackItem,
+    DinnerItem,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: ['src/subscribers/*.ts'],

@@ -17,6 +17,8 @@ import { AppDataSource } from './config/database';
 import { env } from './config/environment';
 import { authRoutes } from './routes/auth';
 import { promptRoutes } from './routes/prompt';
+import { mealsRoutes } from './routes/meals';
+import { activitiesRoutes } from './routes/activities';
 import { seedDatabase } from './seeds/seedDatabase';
 
 const fastify = Fastify({
@@ -50,6 +52,15 @@ export const initializeServer = async () => {
             description: env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
           },
         ],
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT',
+            },
+          },
+        },
       },
       transform: jsonSchemaTransform,
     });
@@ -90,6 +101,8 @@ export const initializeServer = async () => {
 
     await fastify.register(authRoutes, { prefix: '/api/auth' });
     await fastify.register(promptRoutes, { prefix: '/api' });
+    await fastify.register(mealsRoutes, { prefix: '/api/meals' });
+    await fastify.register(activitiesRoutes, { prefix: '/api/activities' });
 
     fastify.withTypeProvider<ZodTypeProvider>().route({
       method: 'GET',

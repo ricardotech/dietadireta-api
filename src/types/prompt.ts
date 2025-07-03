@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { Objetivo, CaloriasDiarias, HorariosRefeicoesOption, Genero, NivelAtividade, TipoPlanoTreino } from './enums';
 
 export const generatePromptSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
   Peso: z.string().regex(/^\d+(\.\d+)?$/, 'Weight must be a valid number'),
   Altura: z.string().regex(/^\d+(\.\d+)?$/, 'Height must be a valid number'),
   Idade: z.string().regex(/^\d+$/, 'Age must be a valid integer'),

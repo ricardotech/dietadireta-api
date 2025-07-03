@@ -11,7 +11,6 @@ import {
 } from '../types/enums';
 
 interface GeneratePromptRequest {
-  token: string;
   Peso: string;
   Altura: string;
   Idade: string;
@@ -34,7 +33,6 @@ export const generatePrompt = async (
 ) => {
   try {
     const {
-      token,
       Peso,
       Altura,
       Idade,
@@ -51,14 +49,17 @@ export const generatePrompt = async (
       janta
     } = request.body;
 
-    // Find user by token
+    // Get user ID from JWT token (set by authentication middleware)
+    const userId = request.user.userId;
+
+    // Find user by ID
     const userDataRepository = AppDataSource.getRepository(UserData);
-    let userData = await userDataRepository.findOne({ where: { token } });
+    let userData = await userDataRepository.findOne({ where: { id: userId } });
 
     if (!userData) {
       return reply.status(404).send({
         success: false,
-        error: 'User not found with provided token'
+        error: 'Usuário não encontrado'
       });
     }
 
@@ -66,12 +67,12 @@ export const generatePrompt = async (
     userData.peso = parseFloat(Peso);
     userData.altura = parseFloat(Altura);
     userData.idade = parseInt(Idade);
-    userData.objetivo = Objetivo as Objetivo;
-    userData.caloriasDiarias = Calorias as CaloriasDiarias;
-    userData.genero = Genero as Genero;
-    userData.horariosParaRefeicoes = Horarios as HorariosRefeicoesOption;
-    userData.nivelAtividade = nivelAtividade as NivelAtividade;
-    userData.planoTreino = treino as TipoPlanoTreino;
+    userData.objetivo = Objetivo as unknown as Objetivo;
+    userData.caloriasDiarias = Calorias as unknown as CaloriasDiarias;
+    userData.genero = Genero as unknown as Genero;
+    userData.horariosParaRefeicoes = Horarios as unknown as HorariosRefeicoesOption;
+    userData.nivelAtividade = nivelAtividade as unknown as NivelAtividade;
+    userData.planoTreino = treino as unknown as TipoPlanoTreino;
     userData.cafeDaManha = cafeDaManha.split(',').map(item => item.trim());
     userData.lancheDaManha = lancheDaManha.split(',').map(item => item.trim());
     userData.almoco = almoco.split(',').map(item => item.trim());
@@ -137,10 +138,10 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
       }
     });
   } catch (error) {
-    console.error('Error generating prompt:', error);
+    console.error('Erro ao gerar prompt:', error);
     return reply.status(500).send({
       success: false,
-      error: 'Internal server error'
+      error: 'Erro interno do servidor'
     });
   }
 };

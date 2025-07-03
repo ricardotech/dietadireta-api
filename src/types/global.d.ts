@@ -22,4 +22,11 @@ declare global {
   type FReply = FastifyReply;
 }
 
+declare module "@fastify/jwt" {
+  interface FastifyJWT {
+    payload: { userId: string };
+    user: { userId: string };
+  }
+}
+
 export {};

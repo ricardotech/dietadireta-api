@@ -21,6 +21,7 @@ export const authResponseSchema = z.object({
     phoneNumber: z.string(),
   }),
   token: z.string(),
+  userToken: z.string(),
 });
 
 export const errorResponseSchema = z.object({
@@ -35,4 +36,5 @@ export interface AuthResponse {
     phoneNumber: string;
   };
   token: string;
+  userToken: string;
 }
