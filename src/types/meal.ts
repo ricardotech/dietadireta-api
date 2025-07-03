@@ -20,6 +20,14 @@ export const mealItemSchema = z.object({
 
 export const mealItemsResponseSchema = z.array(mealItemSchema);
 
+export const allMealsResponseSchema = z.object({
+  breakfast: z.array(mealItemSchema),
+  morningSnack: z.array(mealItemSchema),
+  lunch: z.array(mealItemSchema),
+  afternoonSnack: z.array(mealItemSchema),
+  dinner: z.array(mealItemSchema),
+});
+
 export const errorResponseSchema = z.object({
   error: z.string(),
 });
@@ -28,3 +36,4 @@ export type CreateMealItemRequest = z.infer<typeof createMealItemSchema>;
 export type UpdateMealItemRequest = z.infer<typeof updateMealItemSchema>;
 export type CreateUserMealSelectionRequest = z.infer<typeof createUserMealSelectionSchema>;
 export type MealItem = z.infer<typeof mealItemSchema>;
+export type AllMealsResponse = z.infer<typeof allMealsResponseSchema>;

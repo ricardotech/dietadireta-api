@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppDataSource } from '../config/database';
 import { UserData } from '../entities/UserData';
+import { GeneratedPrompt } from '../entities/GeneratedPrompt';
 import { 
   Objetivo, 
   CaloriasDiarias, 
@@ -9,8 +10,10 @@ import {
   NivelAtividade, 
   TipoPlanoTreino 
 } from '../types/enums';
+import { generatePromptSchema } from '../types/prompt';
+import { OpenAIService } from '../services/openaiService';
 
-interface GeneratePromptRequest {
+interface GeneratePromptRequestBody {
   weight: string;
   height: string;
   age: string;
@@ -28,10 +31,20 @@ interface GeneratePromptRequest {
 }
 
 export const generatePrompt = async (
-  request: FastifyRequest<{ Body: GeneratePromptRequest }>,
+  request: FastifyRequest<{ Body: GeneratePromptRequestBody }>,
   reply: FastifyReply
 ) => {
   try {
+    // Validate request body
+    const validation = generatePromptSchema.safeParse(request.body);
+    if (!validation.success) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Invalid request data',
+        details: validation.error.errors
+      });
+    }
+
     const {
       weight,
       height,
@@ -47,7 +60,7 @@ export const generatePrompt = async (
       lunch,
       afternoonSnack,
       dinner
-    } = request.body;
+    } = validation.data;
 
     // Get user ID from JWT token (set by authentication middleware)
     const userId = request.user.userId;
@@ -63,16 +76,20 @@ export const generatePrompt = async (
       });
     }
 
-    // Update user data with new information
-    userData.peso = parseFloat(weight);
-    userData.altura = parseFloat(height);
-    userData.idade = parseInt(age);
-    userData.objetivo = goal as unknown as Objetivo;
-    userData.caloriasDiarias = calories as unknown as CaloriasDiarias;
-    userData.genero = gender as unknown as Genero;
-    userData.horariosParaRefeicoes = schedule as unknown as HorariosRefeicoesOption;
-    userData.nivelAtividade = activityLevel as unknown as NivelAtividade;
-    userData.planoTreino = workoutPlan as unknown as TipoPlanoTreino;
+    // Update user data with validated information
+    const weightNum = parseFloat(weight);
+    const heightNum = parseFloat(height);
+    const ageNum = parseInt(age);
+
+    userData.peso = weightNum;
+    userData.altura = heightNum;
+    userData.idade = ageNum;
+    userData.objetivo = goal as Objetivo;
+    userData.caloriasDiarias = calories as CaloriasDiarias;
+    userData.genero = gender as Genero;
+    userData.horariosParaRefeicoes = schedule as HorariosRefeicoesOption;
+    userData.nivelAtividade = activityLevel as NivelAtividade;
+    userData.planoTreino = workoutPlan as TipoPlanoTreino;
     userData.cafeDaManha = breakfast.split(',').map((item: string) => item.trim());
     userData.lancheDaManha = morningSnack.split(',').map((item: string) => item.trim());
     userData.almoco = lunch.split(',').map((item: string) => item.trim());
@@ -82,7 +99,8 @@ export const generatePrompt = async (
     // Save updated user data
     await userDataRepository.save(userData);
 
-    const prompt = `
+    // Create the prompt for OpenAI
+    const nutritionPrompt = `
 Você é um nutricionista especializado em criar planos alimentares personalizados. Com base nos dados fornecidos, crie um plano nutricional detalhado.
 
 DADOS DO USUÁRIO:
@@ -116,9 +134,39 @@ INSTRUÇÕES:
 Por favor, forneça o plano alimentar estruturado e detalhado.
     `.trim();
 
+    // Generate AI response using OpenAI
+    const aiResponse = await OpenAIService.generateNutritionPlan(nutritionPrompt);
+
+    // Save the generated prompt and AI response to database
+    const generatedPromptRepository = AppDataSource.getRepository(GeneratedPrompt);
+    const generatedPrompt = generatedPromptRepository.create({
+      userId: userData.id,
+      prompt: nutritionPrompt,
+      aiResponse,
+      userData: {
+        weight: userData.peso,
+        height: userData.altura,
+        age: userData.idade,
+        goal: userData.objetivo,
+        dailyCalories: userData.caloriasDiarias,
+        gender: userData.genero,
+        mealSchedule: userData.horariosParaRefeicoes,
+        activityLevel: userData.nivelAtividade,
+        workoutPlan: userData.planoTreino,
+        breakfast: userData.cafeDaManha,
+        morningSnack: userData.lancheDaManha,
+        lunch: userData.almoco,
+        afternoonSnack: userData.lancheDaTarde,
+        dinner: userData.janta
+      }
+    });
+
+    await generatedPromptRepository.save(generatedPrompt);
+
     return reply.send({
       success: true,
-      prompt,
+      prompt: nutritionPrompt,
+      aiResponse,
       data: {
         userId: userData.id,
         weight: userData.peso,
@@ -139,6 +187,49 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
     });
   } catch (error) {
     console.error('Erro ao gerar prompt:', error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+};
+
+export const getGeneratedPrompt = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    // Get user ID from JWT token
+    const userId = request.user.userId;
+
+    // Get the most recent generated prompt for this user
+    const generatedPromptRepository = AppDataSource.getRepository(GeneratedPrompt);
+    const generatedPrompt = await generatedPromptRepository.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' }
+    });
+
+    if (!generatedPrompt) {
+      return reply.status(404).send({
+        success: false,
+        error: 'Nenhum plano nutricional foi gerado ainda para este usuário'
+      });
+    }
+
+    return reply.send({
+      success: true,
+      data: {
+        id: generatedPrompt.id,
+        userId: generatedPrompt.userId,
+        prompt: generatedPrompt.prompt,
+        aiResponse: generatedPrompt.aiResponse,
+        userData: generatedPrompt.userData,
+        createdAt: generatedPrompt.createdAt,
+        updatedAt: generatedPrompt.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao buscar plano nutricional gerado:', error);
     return reply.status(500).send({
       success: false,
       error: 'Erro interno do servidor'

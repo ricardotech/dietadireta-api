@@ -1,6 +1,6 @@
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { generatePrompt } from '../controllers/promptController';
-import { generatePromptSchema, generatePromptResponseSchema, promptErrorResponseSchema } from '../types/prompt';
+import { generatePrompt, getGeneratedPrompt } from '../controllers/promptController';
+import { generatePromptSchema, generatePromptResponseSchema, getGeneratedPromptResponseSchema, promptErrorResponseSchema } from '../types/prompt';
 import { authenticateBearer } from '../utils/auth';
 
 export const promptRoutes = async (fastify: AppInstance) => {
@@ -21,5 +21,23 @@ export const promptRoutes = async (fastify: AppInstance) => {
       },
     },
     handler: generatePrompt,
+  });
+
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: 'GET',
+    url: '/generatePrompt',
+    preHandler: authenticateBearer,
+    schema: {
+      description: 'Get the most recent generated nutrition prompt for the authenticated user',
+      tags: ['Nutrition'],
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: getGeneratedPromptResponseSchema,
+        401: promptErrorResponseSchema,
+        404: promptErrorResponseSchema,
+        500: promptErrorResponseSchema,
+      },
+    },
+    handler: getGeneratedPrompt,
   });
 };

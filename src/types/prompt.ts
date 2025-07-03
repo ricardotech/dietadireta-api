@@ -2,11 +2,32 @@ import { z } from 'zod';
 import { Objetivo, CaloriasDiarias, HorariosRefeicoesOption, Genero, NivelAtividade, TipoPlanoTreino } from './enums';
 
 export const generatePromptSchema = z.object({
-  weight: z.string().regex(/^\d+(\.\d+)?$/, 'Weight must be a valid number'),
-  height: z.string().regex(/^\d+(\.\d+)?$/, 'Height must be a valid number'),
-  age: z.string().regex(/^\d+$/, 'Age must be a valid integer'),
+  weight: z.string()
+    .regex(/^\d+(\.\d+)?$/, 'Weight must be a valid number')
+    .refine((val) => {
+      const num = parseFloat(val);
+      return num > 0 && num <= 999.99;
+    }, 'Weight must be between 0.01 and 999.99 kg'),
+  height: z.string()
+    .regex(/^\d+(\.\d+)?$/, 'Height must be a valid number')
+    .refine((val) => {
+      const num = parseFloat(val);
+      return num > 0 && num <= 999.99;
+    }, 'Height must be between 0.01 and 999.99 cm'),
+  age: z.string()
+    .regex(/^\d+$/, 'Age must be a valid integer')
+    .refine((val) => {
+      const num = parseInt(val);
+      return num > 0 && num <= 150;
+    }, 'Age must be between 1 and 150 years'),
   goal: z.nativeEnum(Objetivo).describe('User goal'),
-  calories: z.nativeEnum(CaloriasDiarias).describe('Daily calorie target'),
+  calories: z.union([
+    z.nativeEnum(CaloriasDiarias),
+    z.string().transform((val) => {
+      const numVal = parseInt(val);
+      return numVal as unknown as CaloriasDiarias;
+    })
+  ]).describe('Daily calorie target'),
   gender: z.nativeEnum(Genero).describe('Gender'),
   schedule: z.nativeEnum(HorariosRefeicoesOption).describe('Meal schedule'),
   activityLevel: z.nativeEnum(NivelAtividade).describe('Activity level'),
@@ -21,6 +42,7 @@ export const generatePromptSchema = z.object({
 export const generatePromptResponseSchema = z.object({
   success: z.boolean(),
   prompt: z.string(),
+  aiResponse: z.string(),
   data: z.object({
     userId: z.string().uuid(),
     weight: z.number().positive(),
@@ -40,6 +62,19 @@ export const generatePromptResponseSchema = z.object({
   }),
 });
 
+export const getGeneratedPromptResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    id: z.string().uuid(),
+    userId: z.string().uuid(),
+    prompt: z.string(),
+    aiResponse: z.string(),
+    userData: z.any(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+  }),
+});
+
 export const promptErrorResponseSchema = z.object({
   success: z.boolean(),
   error: z.string(),
@@ -47,3 +82,4 @@ export const promptErrorResponseSchema = z.object({
 
 export type GeneratePromptRequest = z.infer<typeof generatePromptSchema>;
 export type GeneratePromptResponse = z.infer<typeof generatePromptResponseSchema>;
+export type GetGeneratedPromptResponse = z.infer<typeof getGeneratedPromptResponseSchema>;

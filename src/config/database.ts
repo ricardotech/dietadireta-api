@@ -5,6 +5,7 @@ import { MorningSnackItem } from '../entities/MorningSnackItem';
 import { LunchItem } from '../entities/LunchItem';
 import { AfternoonSnackItem } from '../entities/AfternoonSnackItem';
 import { DinnerItem } from '../entities/DinnerItem';
+import { GeneratedPrompt } from '../entities/GeneratedPrompt';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -22,6 +23,7 @@ export const AppDataSource = new DataSource({
     LunchItem,
     AfternoonSnackItem,
     DinnerItem,
+    GeneratedPrompt,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: ['src/subscribers/*.ts'],

@@ -1,14 +1,31 @@
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { 
+  getAllMeals,
   getBreakfastItems, 
   getMorningSnackItems, 
   getLunchItems, 
   getAfternoonSnackItems, 
   getDinnerItems 
 } from '../controllers/mealsController';
-import { mealItemsResponseSchema, errorResponseSchema } from '../types/meal';
+import { allMealsResponseSchema, mealItemsResponseSchema, errorResponseSchema } from '../types/meal';
 
 export const mealsRoutes = async (fastify: AppInstance) => {
+  // Combined endpoint for all meals
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: 'GET',
+    url: '/meals',
+    schema: {
+      description: 'Get all meal items organized by meal type',
+      tags: ['Meals'],
+      response: {
+        200: allMealsResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+    handler: getAllMeals,
+  });
+
+  // Individual endpoints (keeping for backward compatibility)
   fastify.withTypeProvider<ZodTypeProvider>().route({
     method: 'GET',
     url: '/breakfast',
