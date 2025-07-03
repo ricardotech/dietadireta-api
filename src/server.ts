@@ -4,18 +4,30 @@ import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUI from '@fastify/swagger-ui';
+import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import {
+  serializerCompiler,
+  validatorCompiler,
+  jsonSchemaTransform,
+} from 'fastify-type-provider-zod';
+import { z } from 'zod';
 import { AppDataSource } from './config/database';
 import { env } from './config/environment';
 import { authRoutes } from './routes/auth';
-import { userRoutes } from './routes/user';
-import { mealRoutes } from './routes/meal';
+import { promptRoutes } from './routes/prompt';
 import { seedDatabase } from './seeds/seedDatabase';
 
 const fastify = Fastify({
   logger: {
     level: env.NODE_ENV === 'production' ? 'info' : 'debug',
   },
-});
+}).withTypeProvider<ZodTypeProvider>();
+
+// Add schema validator and serializer
+fastify.setValidatorCompiler(validatorCompiler);
+fastify.setSerializerCompiler(serializerCompiler);
 
 export const initializeServer = async () => {
   try {
@@ -23,6 +35,46 @@ export const initializeServer = async () => {
     console.log('Database connected successfully');
 
     await seedDatabase();
+
+    // Register Swagger
+    await fastify.register(fastifySwagger, {
+      openapi: {
+        info: {
+          title: 'Nutri Online API',
+          description: 'Nutrition API with TypeORM, Fastify, and PostgreSQL',
+          version: '1.0.0',
+        },
+        servers: [
+          {
+            url: env.NODE_ENV === 'production' ? 'https://api.nutri-online.com' : 'http://localhost:3000',
+            description: env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+          },
+        ],
+      },
+      transform: jsonSchemaTransform,
+    });
+
+    await fastify.register(fastifySwaggerUI, {
+      routePrefix: '/documentation',
+      uiConfig: {
+        docExpansion: 'full',
+        deepLinking: false,
+      },
+      uiHooks: {
+        onRequest: function (request, reply, next) {
+          next();
+        },
+        preHandler: function (request, reply, next) {
+          next();
+        },
+      },
+      staticCSP: true,
+      transformStaticCSP: (header) => header,
+      transformSpecification: (swaggerObject, request, reply) => {
+        return swaggerObject;
+      },
+      transformSpecificationClone: true,
+    });
 
     await fastify.register(helmet);
     await fastify.register(cors, {
@@ -37,11 +89,24 @@ export const initializeServer = async () => {
     });
 
     await fastify.register(authRoutes, { prefix: '/api/auth' });
-    await fastify.register(userRoutes, { prefix: '/api/users' });
-    await fastify.register(mealRoutes, { prefix: '/api/meals' });
+    await fastify.register(promptRoutes, { prefix: '/api' });
 
-    fastify.get('/health', async (request, reply) => {
-      return { status: 'OK', timestamp: new Date().toISOString() };
+    fastify.withTypeProvider<ZodTypeProvider>().route({
+      method: 'GET',
+      url: '/health',
+      schema: {
+        description: 'Health check endpoint',
+        tags: ['Health'],
+        response: {
+          200: z.object({
+            status: z.literal('OK'),
+            timestamp: z.string(),
+          }),
+        },
+      },
+      handler: async (request, reply) => {
+        return { status: 'OK' as const, timestamp: new Date().toISOString() };
+      },
     });
 
     return fastify;

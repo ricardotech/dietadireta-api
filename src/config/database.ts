@@ -1,17 +1,5 @@
 import { DataSource } from 'typeorm';
-import { User } from '../entities/User';
-import { BodyMeasurements } from '../entities/BodyMeasurements';
-import { UserActivity } from '../entities/UserActivity';
-import { BreakfastItem } from '../entities/BreakfastItem';
-import { UserBreakfast } from '../entities/UserBreakfast';
-import { MorningSnackItem } from '../entities/MorningSnackItem';
-import { UserMorningSnack } from '../entities/UserMorningSnack';
-import { LunchItem } from '../entities/LunchItem';
-import { UserLunch } from '../entities/UserLunch';
-import { AfternoonSnackItem } from '../entities/AfternoonSnackItem';
-import { UserAfternoonSnack } from '../entities/UserAfternoonSnack';
-import { DinnerItem } from '../entities/DinnerItem';
-import { UserDinner } from '../entities/UserDinner';
+import { UserData } from '../entities/UserData';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -23,19 +11,7 @@ export const AppDataSource = new DataSource({
   synchronize: process.env.NODE_ENV === 'development',
   logging: process.env.NODE_ENV === 'development',
   entities: [
-    User,
-    BodyMeasurements,
-    UserActivity,
-    BreakfastItem,
-    UserBreakfast,
-    MorningSnackItem,
-    UserMorningSnack,
-    LunchItem,
-    UserLunch,
-    AfternoonSnackItem,
-    UserAfternoonSnack,
-    DinnerItem,
-    UserDinner,
+    UserData,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: ['src/subscribers/*.ts'],
