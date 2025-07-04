@@ -166,22 +166,23 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
     const membrosApiService = new MembrosApiService();
     
     const orderData = {
-      projectId: process.env.MEMBROS_PROJECT_ID!,
-      paymentMethod: 'pix' as const,
+      closed: true,
       customer: {
+        id: userData.id || undefined,
         name: userData.email.split('@')[0] || 'Customer',
+        type: 'individual' as const,
         email: userData.email,
         document: '11144477735',
-        document_type: 'cpf' as const,
-        type: 'individual' as const,
-        phone: {
-          country_code: '55',
-          area_code: userData.phoneNumber?.substring(0, 2) || '11',
-          number: userData.phoneNumber?.substring(2) || '999999999'
+        phones: {
+          mobile_phone: {
+            country_code: '55',
+            area_code: userData.phoneNumber?.substring(0, 2) || '11',
+            number: userData.phoneNumber?.substring(2) || '999999999'
+          }
         },
         address: {
           street: 'Rua XV de Novembro',
-          number: '789',
+          number: 789,
           zip_code: '80020010',
           neighborhood: 'Centro',
           city: 'Curitiba',
@@ -191,24 +192,35 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
       },
       items: [
         {
+          code: 'nutritional-plan-001',
+          amount: 2999,
           description: 'Plano Nutricional Personalizado',
           quantity: 1,
-          amount: 2999 // R$ 29.99 in cents
+          metadata: {
+            customerId: userData.id || 'unknown-customer',
+            creatorId: 'system'
+          }
         }
       ],
-      totalAmount: 2999 // R$ 29.99 in cents
+      totalAmount: 2999
     };
 
     const membrosOrder = await membrosApiService.createOrder(orderData);
+
+    console.log('Membros API Response:', JSON.stringify(membrosOrder, null, 2));
 
     // Step 3: Update Diet record with payment info
     diet.membrosOrderId = membrosOrder.id;
     diet.membrosOrderStatus = membrosOrder.status;
     
-    // Extract PIX QR code URL from the payments array
-    const pixPayment = membrosOrder.payments.find(p => p.payment_method === 'pix');
-    if (pixPayment?.pix_qr_code_url) {
-      diet.pixQrCodeUrl = pixPayment.pix_qr_code_url;
+    // Extract PIX QR code URL from the payments array (with safety checks)
+    if (membrosOrder.payments && Array.isArray(membrosOrder.payments)) {
+      const pixPayment = membrosOrder.payments.find(p => p.payment_method === 'pix');
+      if (pixPayment?.pix_qr_code_url) {
+        diet.pixQrCodeUrl = pixPayment.pix_qr_code_url;
+      }
+    } else {
+      console.warn('No payments array found in membros order response');
     }
 
     await dietRepository.save(diet);

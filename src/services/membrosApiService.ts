@@ -5,22 +5,23 @@ interface MembrosApiConfig {
 }
 
 interface CreateOrderRequest {
-  projectId: string;
-  paymentMethod: 'pix' | 'credit_card';
+  closed: boolean;
   customer: {
+    id?: string;
     name: string;
+    type: 'individual' | 'company';
     email: string;
     document: string;
-    document_type: 'cpf' | 'cnpj';
-    type: 'individual' | 'company';
-    phone: {
-      country_code: string;
-      area_code: string;
-      number: string;
+    phones: {
+      mobile_phone: {
+        country_code: string;
+        area_code: string;
+        number: string;
+      };
     };
     address: {
       street: string;
-      number: string;
+      number: number;
       zip_code: string;
       neighborhood: string;
       city: string;
@@ -29,9 +30,14 @@ interface CreateOrderRequest {
     };
   };
   items: Array<{
+    code: string;
+    amount: number;
     description: string;
     quantity: number;
-    amount: number;
+    metadata: {
+      customerId: string;
+      creatorId: string;
+    };
   }>;
   totalAmount: number;
 }
@@ -80,13 +86,59 @@ export class MembrosApiService {
     }
   }
 
-  async createOrder(orderData: CreateOrderRequest): Promise<CreateOrderResponse> {
+  // Mock data for testing
+  private getMockOrderData(): CreateOrderRequest {
+    return {
+      "closed": true,
+      "customer": {
+        "id": "4d0a9f11-9783-4b97-b0f2-3a2a657f043a",
+        "name": "Ricardo Fonseca Sarti Domene",
+        "type": "individual",
+        "email": "ricardofsdomene@icloud.com",
+        "document": "37151994826",
+        "phones": {
+          "mobile_phone": {
+            "country_code": "55",
+            "area_code": "11",
+            "number": "915799139"
+          }
+        },
+        "address": {
+          "street": "Avenida Presidente Kennedy",
+          "number": 289,
+          "zip_code": "75040040",
+          "neighborhood": "Maracanã",
+          "city": "Anápolis",
+          "state": "GO",
+          "country": "BR"
+        }
+      },
+      "items": [
+        {
+          "code": "d1e31583-3dd1-411c-99eb-1e06405c942e",
+          "amount": 1990,
+          "description": "Vestibulando",
+          "quantity": 1,
+          "metadata": {
+            "customerId": "4d0a9f11-9783-4b97-b0f2-3a2a657f043a",
+            "creatorId": "ebbf779e-6fc1-487c-9feb-d8721454cf5e"
+          }
+        }
+      ],
+      "totalAmount": 1990
+    };
+  }
+
+  async createOrder(orderData?: CreateOrderRequest): Promise<CreateOrderResponse> {
+    // Use mock data if no order data is provided (for testing)
+    const dataToSend = orderData || this.getMockOrderData();
+    
     const url = `${this.config.baseUrl}/v2/orders/pix`;
     
     const authString = `${this.config.publicKey}:${this.config.secretKey}`;
     
     // Log the request for debugging
-    console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
+    console.log('Creating order with data:', JSON.stringify(dataToSend, null, 2));
     
     const response = await fetch(url, {
       method: 'POST',
@@ -94,7 +146,7 @@ export class MembrosApiService {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authString}`
       },
-      body: JSON.stringify(orderData)
+      body: JSON.stringify(dataToSend)
     });
 
     if (!response.ok) {
@@ -104,6 +156,11 @@ export class MembrosApiService {
     }
 
     return await response.json();
+  }
+
+  // Method specifically for testing with mock data
+  async createTestOrder(): Promise<CreateOrderResponse> {
+    return this.createOrder(this.getMockOrderData());
   }
 
   async getOrder(orderId: string): Promise<CreateOrderResponse> {
