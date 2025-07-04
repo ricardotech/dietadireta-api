@@ -4,28 +4,37 @@ interface MembrosApiConfig {
 }
 
 interface CreateOrderRequest {
-  paymentMethod: 'pix' | 'credit_card';
+  projectId: string;
+  closed: boolean;
   customer: {
+    id: string;
     name: string;
+    type: 'individual' | 'company';
     email: string;
-    document?: string;
-    document_type?: 'cpf' | 'cnpj';
-    type?: 'individual' | 'company';
-    phone?: {
-      country_code?: string;
-      area_code: string;
-      number: string;
+    document: string;
+    phones: {
+      mobile_phone: {
+        country_code: string;
+        area_code: string;
+        number: string;
+      };
+    };
+    address: {
+      street: string;
+      number: number;
+      zip_code: string;
+      neighborhood: string;
+      city: string;
+      state: string;
+      country: string;
     };
   };
   items: Array<{
+    amount: number;
     description: string;
     quantity: number;
-    amount: number;
-    productId?: string;
-    productName?: string;
   }>;
   totalAmount: number;
-  projectId?: string;
 }
 
 interface CreateOrderResponse {
@@ -48,6 +57,7 @@ interface CreateOrderResponse {
 
 export class MembrosApiService {
   private config: MembrosApiConfig;
+  private projectId: string;
 
   constructor() {
     this.config = {
@@ -55,8 +65,14 @@ export class MembrosApiService {
       apiKey: process.env.MEMBROS_API_KEY || ''
     };
 
+    this.projectId = process.env.MEMBROS_PROJECT_ID || '';
+
     if (!this.config.apiKey) {
       throw new Error('MEMBROS_API_KEY environment variable is required');
+    }
+
+    if (!this.projectId) {
+      throw new Error('MEMBROS_PROJECT_ID environment variable is required');
     }
   }
 
