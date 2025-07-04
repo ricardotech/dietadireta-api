@@ -12,6 +12,7 @@ import {
 } from '../types/enums';
 import { generatePromptSchema } from '../types/prompt';
 import { OpenAIService } from '../services/openaiService';
+import { MembrosApiService } from '../services/membrosApiService';
 
 interface GeneratePromptRequestBody {
   weight: string;
@@ -99,7 +100,7 @@ export const generatePrompt = async (
     // Save updated user data
     await userDataRepository.save(userData);
 
-    // Create the prompt for OpenAI
+    // Create the prompt for OpenAI (but don't send it yet)
     const nutritionPrompt = `
 Você é um nutricionista especializado em criar planos alimentares personalizados. Com base nos dados fornecidos, crie um plano nutricional detalhado.
 
@@ -134,15 +135,12 @@ INSTRUÇÕES:
 Por favor, forneça o plano alimentar estruturado e detalhado.
     `.trim();
 
-    // Generate AI response using OpenAI
-    const aiResponse = await OpenAIService.generateNutritionPlan(nutritionPrompt);
-
-    // Save the generated prompt and AI response to database
+    // Step 1: Create Diet record BEFORE OpenAI call
     const dietRepository = AppDataSource.getRepository(Diet);
     const diet = dietRepository.create({
       userId: userData.id,
       prompt: nutritionPrompt,
-      aiResponse,
+      aiResponse: '', // Empty initially, will be filled after payment
       orderStatus: OrderStatus.PENDING,
       userData: {
         weight: userData.peso,
@@ -164,27 +162,51 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
 
     await dietRepository.save(diet);
 
+    // Step 2: Create order in membros-api
+    const membrosApiService = new MembrosApiService();
+    
+    const orderData = {
+      paymentMethod: 'pix' as const,
+      customer: {
+        name: userData.email.split('@')[0] || 'Customer',
+        email: userData.email,
+        document_type: 'cpf' as const,
+        type: 'individual' as const,
+        phone: userData.phoneNumber ? {
+          country_code: '55',
+          area_code: userData.phoneNumber.substring(0, 2),
+          number: userData.phoneNumber.substring(2)
+        } : undefined
+      },
+      items: [
+        {
+          description: 'Plano Nutricional Personalizado',
+          quantity: 1,
+          amount: 2999, // R$ 29.99 in cents
+          productName: 'Plano Nutricional'
+        }
+      ],
+      totalAmount: 2999 // R$ 29.99 in cents
+    };
+
+    const membrosOrder = await membrosApiService.createOrder(orderData);
+
+    // Step 3: Update Diet record with payment info
+    diet.membrosOrderId = membrosOrder.id;
+    diet.membrosOrderStatus = membrosOrder.status;
+    
+    // Extract PIX QR code URL from the payments array
+    const pixPayment = membrosOrder.payments.find(p => p.payment_method === 'pix');
+    if (pixPayment?.pix_qr_code_url) {
+      diet.pixQrCodeUrl = pixPayment.pix_qr_code_url;
+    }
+
+    await dietRepository.save(diet);
+
+    // Step 4: Return lean response
     return reply.send({
-      success: true,
-      prompt: nutritionPrompt,
-      aiResponse,
-      data: {
-        userId: userData.id,
-        weight: userData.peso,
-        height: userData.altura,
-        age: userData.idade,
-        goal: userData.objetivo,
-        dailyCalories: userData.caloriasDiarias,
-        gender: userData.genero,
-        mealSchedule: userData.horariosParaRefeicoes,
-        activityLevel: userData.nivelAtividade,
-        workoutPlan: userData.planoTreino,
-        breakfast: userData.cafeDaManha,
-        morningSnack: userData.lancheDaManha,
-        lunch: userData.almoco,
-        afternoonSnack: userData.lancheDaTarde,
-        dinner: userData.janta
-      }
+      dietId: diet.id,
+      pixQrCodeUrl: diet.pixQrCodeUrl
     });
   } catch (error) {
     console.error('Erro ao gerar prompt:', error);

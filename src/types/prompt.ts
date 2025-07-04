@@ -82,26 +82,8 @@ export const generatePromptSchema = z.object({
 });
 
 export const generatePromptResponseSchema = z.object({
-  success: z.boolean(),
-  prompt: z.string(),
-  aiResponse: z.string(),
-  data: z.object({
-    userId: z.string().uuid(),
-    weight: z.number().positive(),
-    height: z.number().positive(),
-    age: z.number().positive(),
-    goal: z.nativeEnum(Objetivo),
-    dailyCalories: z.number().positive(),
-    gender: z.nativeEnum(Genero),
-    mealSchedule: z.nativeEnum(HorariosRefeicoesOption),
-    activityLevel: z.nativeEnum(NivelAtividade),
-    workoutPlan: z.nativeEnum(TipoPlanoTreino),
-    breakfast: z.array(z.string()),
-    morningSnack: z.array(z.string()),
-    lunch: z.array(z.string()),
-    afternoonSnack: z.array(z.string()),
-    dinner: z.array(z.string()),
-  }),
+  dietId: z.string().uuid(),
+  pixQrCodeUrl: z.string().url().optional(),
 });
 
 export const getGeneratedPromptResponseSchema = z.object({

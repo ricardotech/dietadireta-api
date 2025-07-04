@@ -28,6 +28,16 @@ export class Diet {
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   orderStatus: OrderStatus;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Index()
+  membrosOrderId?: string;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  membrosOrderStatus?: string;
+
+  @Column({ type: 'text', nullable: true })
+  pixQrCodeUrl?: string;
+
   @Column({ type: 'jsonb', nullable: true })
   userData: any;
 
