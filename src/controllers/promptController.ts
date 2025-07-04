@@ -4,7 +4,6 @@ import { UserData } from '../entities/UserData';
 import { Diet } from '../entities/Diet';
 import { 
   Objetivo, 
-  CaloriasDiarias, 
   HorariosRefeicoesOption, 
   Genero, 
   NivelAtividade, 
@@ -86,7 +85,7 @@ export const generatePrompt = async (
     userData.altura = heightNum;
     userData.idade = ageNum;
     userData.objetivo = goal as Objetivo;
-    userData.caloriasDiarias = calories as CaloriasDiarias;
+    userData.caloriasDiarias = parseInt(calories);
     userData.genero = gender as Genero;
     userData.horariosParaRefeicoes = schedule as HorariosRefeicoesOption;
     userData.nivelAtividade = activityLevel as NivelAtividade;

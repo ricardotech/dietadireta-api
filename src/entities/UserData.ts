@@ -1,7 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 import { 
   Objetivo, 
-  CaloriasDiarias, 
   HorariosRefeicoesOption, 
   Genero, 
   NivelAtividade, 
@@ -40,8 +39,8 @@ export class UserData {
   @Column({ type: 'enum', enum: Objetivo })
   objetivo: Objetivo;
 
-  @Column({ type: 'enum', enum: CaloriasDiarias })
-  caloriasDiarias: CaloriasDiarias;
+  @Column({ type: 'int', default: 2000, nullable: true })
+  caloriasDiarias: number;
 
   @Column({ type: 'enum', enum: HorariosRefeicoesOption })
   horariosParaRefeicoes: HorariosRefeicoesOption;

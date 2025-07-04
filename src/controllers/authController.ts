@@ -6,7 +6,6 @@ import { SignUpRequest, SignInRequest, AuthResponse, signUpSchema, signInSchema 
 import { v4 as uuidv4 } from 'uuid';
 import { 
   Objetivo, 
-  CaloriasDiarias, 
   HorariosRefeicoesOption, 
   Genero, 
   NivelAtividade, 
@@ -44,7 +43,7 @@ export const signUp = async (request: FastifyRequest, reply: FastifyReply) => {
       altura: 0,
       idade: 0,
       objetivo: Objetivo.EMAGRECER,
-      caloriasDiarias: CaloriasDiarias.CAL_2000,
+      caloriasDiarias: 2000,
       horariosParaRefeicoes: HorariosRefeicoesOption.H0700,
       genero: Genero.MASCULINO,
       nivelAtividade: NivelAtividade.MODERADO,
