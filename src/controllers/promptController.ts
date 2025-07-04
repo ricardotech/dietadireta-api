@@ -167,35 +167,33 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
     
     const orderData = {
       projectId: process.env.MEMBROS_PROJECT_ID!,
-      closed: true,
+      paymentMethod: 'pix' as const,
       customer: {
-        id: userData.id,
         name: userData.email.split('@')[0] || 'Customer',
-        type: 'individual' as const,
         email: userData.email,
-        document: '00000000000', // Default CPF - could be made configurable
-        phones: {
-          mobile_phone: {
-            country_code: '55',
-            area_code: userData.phoneNumber?.substring(0, 2) || '11',
-            number: userData.phoneNumber?.substring(2) || '999999999'
-          }
+        document: '11144477735',
+        document_type: 'cpf' as const,
+        type: 'individual' as const,
+        phone: {
+          country_code: '55',
+          area_code: userData.phoneNumber?.substring(0, 2) || '11',
+          number: userData.phoneNumber?.substring(2) || '999999999'
         },
         address: {
-          street: 'Rua Principal',
-          number: 123,
-          zip_code: '01000000',
+          street: 'Rua XV de Novembro',
+          number: '789',
+          zip_code: '80020010',
           neighborhood: 'Centro',
-          city: 'São Paulo',
-          state: 'SP',
+          city: 'Curitiba',
+          state: 'PR',
           country: 'BR'
         }
       },
       items: [
         {
-          amount: 2999, // R$ 29.99 in cents
           description: 'Plano Nutricional Personalizado',
-          quantity: 1
+          quantity: 1,
+          amount: 2999 // R$ 29.99 in cents
         }
       ],
       totalAmount: 2999 // R$ 29.99 in cents
