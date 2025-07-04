@@ -46,3 +46,11 @@ export enum TipoPlanoTreino {
   CASA = 'casa',
   NENHUM = 'nenhum',
 }
+
+export enum OrderStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  DELIVERED = 'delivered',
+}

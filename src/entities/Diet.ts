@@ -1,8 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { UserData } from './UserData';
+import { OrderStatus } from '../types/enums';
 
-@Entity('generated_prompts')
-export class GeneratedPrompt {
+@Entity('diets')
+export class Diet {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -19,6 +20,13 @@ export class GeneratedPrompt {
 
   @Column({ type: 'text' })
   aiResponse: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Index()
+  orderId?: string;
+
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
+  orderStatus: OrderStatus;
 
   @Column({ type: 'jsonb', nullable: true })
   userData: any;

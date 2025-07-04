@@ -1,5 +1,5 @@
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { generatePrompt, getGeneratedPrompt } from '../controllers/promptController';
+import { generatePrompt, getDiet } from '../controllers/promptController';
 import { generatePromptSchema, generatePromptResponseSchema, getGeneratedPromptResponseSchema, promptErrorResponseSchema } from '../types/prompt';
 import { authenticateBearer } from '../utils/auth';
 
@@ -38,6 +38,6 @@ export const promptRoutes = async (fastify: AppInstance) => {
         500: promptErrorResponseSchema,
       },
     },
-    handler: getGeneratedPrompt,
+    handler: getDiet,
   });
 };

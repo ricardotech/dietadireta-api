@@ -1,14 +1,15 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppDataSource } from '../config/database';
 import { UserData } from '../entities/UserData';
-import { GeneratedPrompt } from '../entities/GeneratedPrompt';
+import { Diet } from '../entities/Diet';
 import { 
   Objetivo, 
   CaloriasDiarias, 
   HorariosRefeicoesOption, 
   Genero, 
   NivelAtividade, 
-  TipoPlanoTreino 
+  TipoPlanoTreino,
+  OrderStatus
 } from '../types/enums';
 import { generatePromptSchema } from '../types/prompt';
 import { OpenAIService } from '../services/openaiService';
@@ -138,11 +139,12 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
     const aiResponse = await OpenAIService.generateNutritionPlan(nutritionPrompt);
 
     // Save the generated prompt and AI response to database
-    const generatedPromptRepository = AppDataSource.getRepository(GeneratedPrompt);
-    const generatedPrompt = generatedPromptRepository.create({
+    const dietRepository = AppDataSource.getRepository(Diet);
+    const diet = dietRepository.create({
       userId: userData.id,
       prompt: nutritionPrompt,
       aiResponse,
+      orderStatus: OrderStatus.PENDING,
       userData: {
         weight: userData.peso,
         height: userData.altura,
@@ -161,7 +163,7 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
       }
     });
 
-    await generatedPromptRepository.save(generatedPrompt);
+    await dietRepository.save(diet);
 
     return reply.send({
       success: true,
@@ -194,7 +196,7 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
   }
 };
 
-export const getGeneratedPrompt = async (
+export const getDiet = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
@@ -202,14 +204,14 @@ export const getGeneratedPrompt = async (
     // Get user ID from JWT token
     const userId = request.user.userId;
 
-    // Get the most recent generated prompt for this user
-    const generatedPromptRepository = AppDataSource.getRepository(GeneratedPrompt);
-    const generatedPrompt = await generatedPromptRepository.findOne({
+    // Get the most recent diet plan for this user
+    const dietRepository = AppDataSource.getRepository(Diet);
+    const diet = await dietRepository.findOne({
       where: { userId },
       order: { createdAt: 'DESC' }
     });
 
-    if (!generatedPrompt) {
+    if (!diet) {
       return reply.status(404).send({
         success: false,
         error: 'Nenhum plano nutricional foi gerado ainda para este usuário'
@@ -219,13 +221,15 @@ export const getGeneratedPrompt = async (
     return reply.send({
       success: true,
       data: {
-        id: generatedPrompt.id,
-        userId: generatedPrompt.userId,
-        prompt: generatedPrompt.prompt,
-        aiResponse: generatedPrompt.aiResponse,
-        userData: generatedPrompt.userData,
-        createdAt: generatedPrompt.createdAt,
-        updatedAt: generatedPrompt.updatedAt
+        id: diet.id,
+        userId: diet.userId,
+        prompt: diet.prompt,
+        aiResponse: diet.aiResponse,
+        orderId: diet.orderId,
+        orderStatus: diet.orderStatus,
+        userData: diet.userData,
+        createdAt: diet.createdAt,
+        updatedAt: diet.updatedAt
       }
     });
   } catch (error) {
