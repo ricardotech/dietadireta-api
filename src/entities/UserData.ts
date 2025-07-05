@@ -26,6 +26,12 @@ export class UserData {
   @Column({ type: 'varchar', length: 255, nullable: true })
   token?: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  resetPasswordToken?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resetPasswordExpires?: Date;
+
   // Body measurements
   @Column({ type: 'decimal', precision: 5, scale: 2 })
   peso: number;

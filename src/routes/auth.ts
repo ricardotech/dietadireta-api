@@ -1,6 +1,7 @@
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { signUp, signIn } from '../controllers/authController';
+import { signUp, signIn, forgotPassword, resetPassword } from '../controllers/authController';
 import { signUpSchema, signInSchema, authResponseSchema, errorResponseSchema } from '../types/auth';
+import { z } from 'zod';
 
 export const authRoutes = async (fastify: AppInstance) => {
   fastify.withTypeProvider<ZodTypeProvider>().route({
@@ -34,5 +35,46 @@ export const authRoutes = async (fastify: AppInstance) => {
       },
     },
     handler: signIn,
+  });
+
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: 'POST',
+    url: '/forgot-password',
+    schema: {
+      description: 'Request password reset',
+      tags: ['Authentication'],
+      body: z.object({
+        email: z.string().email('Invalid email format'),
+      }),
+      response: {
+        200: z.object({
+          message: z.string(),
+        }),
+        400: errorResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+    handler: forgotPassword,
+  });
+
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: 'POST',
+    url: '/reset-password',
+    schema: {
+      description: 'Reset password with token',
+      tags: ['Authentication'],
+      body: z.object({
+        token: z.string().min(1, 'Reset token is required'),
+        password: z.string().min(8, 'Password must be at least 8 characters long'),
+      }),
+      response: {
+        200: z.object({
+          message: z.string(),
+        }),
+        400: errorResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+    handler: resetPassword,
   });
 };

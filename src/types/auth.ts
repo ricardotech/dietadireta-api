@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const signUpSchema = z.object({
   email: z.string().email('Invalid email format'),
-  phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits'),
+  phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits').optional(),
   password: z.string().min(8, 'Password must be at least 8 characters long'),
 });
 
