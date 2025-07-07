@@ -18,7 +18,7 @@ export const authResponseSchema = z.object({
   user: z.object({
     id: z.string().uuid(),
     email: z.string().email(),
-    phoneNumber: z.string(),
+    phoneNumber: z.string().optional(),
   }),
   token: z.string(),
   userToken: z.string(),
@@ -33,7 +33,7 @@ export interface AuthResponse {
   user: {
     id: string;
     email: string;
-    phoneNumber: string;
+    phoneNumber?: string;
   };
   token: string;
   userToken: string;

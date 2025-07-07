@@ -79,7 +79,7 @@ export const signUp = async (request: FastifyRequest, reply: FastifyReply) => {
       user: {
         id: user.id,
         email: user.email,
-        phoneNumber: user.phoneNumber as string,
+        phoneNumber: user.phoneNumber || undefined,
       },
       token: jwtToken,
       userToken: userToken,
@@ -128,7 +128,7 @@ export const signIn = async (request: FastifyRequest, reply: FastifyReply) => {
       user: {
         id: user.id,
         email: user.email,
-        phoneNumber: user.phoneNumber as string,
+        phoneNumber: user.phoneNumber || undefined,
       },
       token: jwtToken,
       userToken: user.token || '',
