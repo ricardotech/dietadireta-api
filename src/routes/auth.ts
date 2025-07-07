@@ -1,6 +1,7 @@
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { signUp, signIn, forgotPassword, resetPassword } from '../controllers/authController';
+import { signUp, signIn, forgotPassword, resetPassword, whoami } from '../controllers/authController';
 import { signUpSchema, signInSchema, authResponseSchema, errorResponseSchema } from '../types/auth';
+import { authenticateBearer } from '../utils/auth';
 import { z } from 'zod';
 
 export const authRoutes = async (fastify: AppInstance) => {
@@ -76,5 +77,27 @@ export const authRoutes = async (fastify: AppInstance) => {
       },
     },
     handler: resetPassword,
+  });
+
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: 'GET',
+    url: '/whoami',
+    preHandler: authenticateBearer,
+    schema: {
+      description: 'Get current user information',
+      tags: ['Authentication'],
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: z.object({
+          id: z.string().uuid(),
+          email: z.string().email(),
+          phoneNumber: z.string(),
+        }),
+        401: errorResponseSchema,
+        404: errorResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+    handler: whoami,
   });
 };

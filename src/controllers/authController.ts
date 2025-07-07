@@ -252,3 +252,31 @@ export const resetPassword = async (request: FastifyRequest, reply: FastifyReply
     });
   }
 };
+
+export const whoami = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const userId = (request.user as { userId: string }).userId;
+    
+    const user = await userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'email', 'phoneNumber'],
+    });
+
+    if (!user) {
+      return reply.status(404).send({
+        error: 'Usuário não encontrado',
+      });
+    }
+
+    return reply.status(200).send({
+      id: user.id,
+      email: user.email,
+      phoneNumber: user.phoneNumber || '',
+    });
+  } catch (error) {
+    console.error('Erro ao buscar dados do usuário:', error);
+    return reply.status(500).send({
+      error: 'Erro interno do servidor',
+    });
+  }
+};
