@@ -135,12 +135,15 @@ INSTRUÇÕES:
 Por favor, forneça o plano alimentar estruturado e detalhado.
     `.trim();
 
-    // Step 1: Create Diet record BEFORE OpenAI call
+    // Step 1: Generate AI diet using OpenAI
+    const aiResponse = await OpenAIService.generateNutritionPlan(nutritionPrompt);
+
+    // Step 2: Create Diet record with AI response
     const dietRepository = AppDataSource.getRepository(Diet);
     const diet = dietRepository.create({
       userId: userData.id,
       prompt: nutritionPrompt,
-      aiResponse: '', // Empty initially, will be filled after payment
+      aiResponse: aiResponse,
       orderStatus: OrderStatus.PENDING,
       userData: {
         weight: userData.peso,
@@ -162,73 +165,48 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
 
     await dietRepository.save(diet);
 
-    // Step 2: Create order in membros-api
+    // Step 3: Create order in membros-api
     const membrosApiService = new MembrosApiService();
     
     const orderData = {
       closed: true,
-      customer: {
-        id: userData.id || undefined,
-        name: userData.email.split('@')[0] || 'Customer',
-        type: 'individual' as const,
-        email: userData.email,
-        document: '11144477735',
-        phones: {
-          mobile_phone: {
-            country_code: '55',
-            area_code: userData.phoneNumber?.substring(0, 2) || '11',
-            number: userData.phoneNumber?.substring(2) || '999999999'
-          }
-        },
-        address: {
-          street: 'Rua XV de Novembro',
-          number: 789,
-          zip_code: '80020010',
-          neighborhood: 'Centro',
-          city: 'Curitiba',
-          state: 'PR',
-          country: 'BR'
-        }
-      },
+      customer_id: userData.id,
       items: [
         {
-          code: 'nutritional-plan-001',
-          amount: 2999,
+          amount: 990, // R$ 9,90 in cents
           description: 'Plano Nutricional Personalizado',
-          quantity: 1,
-          metadata: {
-            customerId: userData.id || 'unknown-customer',
-            creatorId: 'system'
-          }
+          quantity: 1
         }
       ],
-      totalAmount: 2999
+      totalAmount: 990
     };
 
     const membrosOrder = await membrosApiService.createOrder(orderData);
 
     console.log('Membros API Response:', JSON.stringify(membrosOrder, null, 2));
 
-    // Step 3: Update Diet record with payment info
+    // Step 4: Update Diet record with payment info
     diet.membrosOrderId = membrosOrder.id;
     diet.membrosOrderStatus = membrosOrder.status;
     
-    // Extract PIX QR code URL from the payments array (with safety checks)
-    if (membrosOrder.payments && Array.isArray(membrosOrder.payments)) {
-      const pixPayment = membrosOrder.payments.find(p => p.payment_method === 'pix');
-      if (pixPayment?.pix_qr_code_url) {
-        diet.pixQrCodeUrl = pixPayment.pix_qr_code_url;
-      }
-    } else {
-      console.warn('No payments array found in membros order response');
+    // Extract PIX QR code URL from last_transaction
+    if (membrosOrder.last_transaction?.qr_code_url) {
+      diet.pixQrCodeUrl = membrosOrder.last_transaction.qr_code_url;
     }
 
     await dietRepository.save(diet);
 
-    // Step 4: Return lean response
+    // Step 5: Return response with QR code URL
     return reply.send({
-      dietId: diet.id,
-      pixQrCodeUrl: diet.pixQrCodeUrl
+      success: true,
+      data: {
+        dietId: diet.id,
+        orderId: membrosOrder.id,
+        qrCodeUrl: membrosOrder.last_transaction?.qr_code_url,
+        status: membrosOrder.status,
+        amount: membrosOrder.amount,
+        expiresAt: membrosOrder.last_transaction?.expires_at
+      }
     });
   } catch (error) {
     console.error('Erro ao gerar prompt:', error);
@@ -280,6 +258,77 @@ export const getDiet = async (
     return reply.status(500).send({
       success: false,
       error: 'Erro interno do servidor'
+    });
+  }
+};
+
+export const checkPaymentStatus = async (
+  request: FastifyRequest<{ Params: { orderId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { orderId } = request.params;
+    const userId = request.user.userId;
+
+    // Find the diet record by membrosOrderId and userId
+    const dietRepository = AppDataSource.getRepository(Diet);
+    const diet = await dietRepository.findOne({
+      where: { membrosOrderId: orderId, userId }
+    });
+
+    if (!diet) {
+      return reply.status(404).send({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    // Check payment status with Membros API
+    const membrosApiService = new MembrosApiService();
+    const orderStatus = await membrosApiService.getOrder(orderId);
+
+    console.log('Order status from Membros API:', orderStatus);
+
+    // Update local status
+    diet.membrosOrderStatus = orderStatus.status;
+    await dietRepository.save(diet);
+
+    // If payment is confirmed and diet is ready, return the diet
+    if (orderStatus.status === 'paid' && diet.aiResponse) {
+      return reply.send({
+        success: true,
+        paid: true,
+        data: {
+          dietId: diet.id,
+          aiResponse: diet.aiResponse,
+          orderStatus: orderStatus.status,
+          createdAt: diet.createdAt
+        }
+      });
+    }
+
+    // If payment is confirmed but diet is not ready yet
+    if (orderStatus.status === 'paid' && !diet.aiResponse) {
+      return reply.send({
+        success: true,
+        paid: true,
+        processing: true,
+        message: 'Payment confirmed. Diet is being generated...'
+      });
+    }
+
+    // Payment not confirmed yet
+    return reply.send({
+      success: true,
+      paid: false,
+      status: orderStatus.status,
+      message: 'Payment not confirmed yet'
+    });
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Internal server error'
     });
   }
 };

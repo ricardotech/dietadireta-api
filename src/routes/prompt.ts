@@ -1,9 +1,12 @@
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { generatePrompt, getDiet } from '../controllers/promptController';
+import type { FastifyInstance } from 'fastify';
+import { generatePrompt, getDiet, checkPaymentStatus } from '../controllers/promptController';
 import { generatePromptSchema, generatePromptResponseSchema, getGeneratedPromptResponseSchema, promptErrorResponseSchema } from '../types/prompt';
 import { authenticateBearer } from '../utils/auth';
 
-export const promptRoutes = async (fastify: AppInstance) => {
+type AppInstance = FastifyInstance;
+
+export const promptRoutes = async (fastify: FastifyInstance) => {
   fastify.withTypeProvider<ZodTypeProvider>().route({
     method: 'POST',
     url: '/generatePrompt',
@@ -39,5 +42,48 @@ export const promptRoutes = async (fastify: AppInstance) => {
       },
     },
     handler: getDiet,
+  });
+
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: 'GET',
+    url: '/payment-status/:orderId',
+    preHandler: authenticateBearer,
+    schema: {
+      description: 'Check payment status for an order',
+      tags: ['Payment'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: {
+          orderId: { type: 'string' }
+        },
+        required: ['orderId']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            paid: { type: 'boolean' },
+            processing: { type: 'boolean' },
+            status: { type: 'string' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                dietId: { type: 'string' },
+                aiResponse: { type: 'string' },
+                orderStatus: { type: 'string' },
+                createdAt: { type: 'string' }
+              }
+            }
+          }
+        },
+        401: promptErrorResponseSchema,
+        404: promptErrorResponseSchema,
+        500: promptErrorResponseSchema,
+      },
+    },
+    handler: checkPaymentStatus,
   });
 };

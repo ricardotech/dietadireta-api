@@ -5,14 +5,21 @@ import { OpenAIService } from '../services/openaiService';
 
 interface WebhookRequestBody {
   event: string;
-  data: {
+  timestamp: string;
+  order: {
     id: string;
+    customer_id: string;
+    amount: number;
     status: string;
-    orderId?: string;
-    order?: {
-      id: string;
-      status: string;
-    };
+    payment_method: string;
+    items: Array<{
+      description: string;
+      quantity: number;
+      amount: number;
+    }>;
+    created_at: string;
+    updated_at: string;
+    metadata?: Record<string, any>;
   };
 }
 
@@ -21,10 +28,12 @@ export const handleOrderPaidWebhook = async (
   reply: FastifyReply
 ) => {
   try {
-    const { event, data } = request.body;
+    const { event, order } = request.body;
+    
+    console.log('Webhook received:', { event, orderId: order?.id, status: order?.status });
 
     // Check if this is a payment success event
-    if (event !== 'payment.paid' && event !== 'order.paid') {
+    if (event !== 'order.paid') {
       return reply.send({
         success: true,
         message: 'Event not relevant for processing'
@@ -32,7 +41,7 @@ export const handleOrderPaidWebhook = async (
     }
 
     // Extract order ID from the webhook data
-    const orderId = data.orderId || data.order?.id || data.id;
+    const orderId = request.body.order?.id;
     
     if (!orderId) {
       return reply.status(400).send({
