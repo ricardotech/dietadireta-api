@@ -25,6 +25,6 @@ export const AppDataSource = new DataSource({
     DinnerItem,
     Diet,
   ],
-  migrations: ['src/migrations/*.ts'],
-  subscribers: ['src/subscribers/*.ts'],
+  migrations: [process.env.NODE_ENV === 'production' ? 'dist/migrations/*.js' : 'src/migrations/*.ts'],
+  subscribers: [process.env.NODE_ENV === 'production' ? 'dist/subscribers/*.js' : 'src/subscribers/*.ts'],
 });
