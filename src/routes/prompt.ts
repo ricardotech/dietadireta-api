@@ -129,6 +129,12 @@ const createCheckoutSchema = z.object({
     afternoonSnack: z.string().optional(),
     dinner: z.string().optional(),
   }).optional(),
+  // Optional user info for payment
+  userInfo: z.object({
+    email: z.string().email().optional(),
+    cpf: z.string().optional(),
+    phoneNumber: z.string().optional(),
+  }).optional(),
 });
 
 const createCheckoutResponseSchema = z.object({

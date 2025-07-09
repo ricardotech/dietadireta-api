@@ -100,13 +100,18 @@ export const handleOrderPaidWebhook = async (
     // Check if this is a payment success event
     if (event !== 'order.paid') {
       console.log('⚠️  Event not relevant for processing:', event);
-      return reply.send({
-        success: true,
-        message: 'Event not relevant for processing'
-      });
+      // Still process other events that might indicate payment success
+      if (event === 'order.updated' && data?.status === 'paid') {
+        console.log('✅ Processing order.updated event with paid status');
+      } else {
+        return reply.send({
+          success: true,
+          message: 'Event not relevant for processing'
+        });
+      }
+    } else {
+      console.log('✅ Processing order.paid event');
     }
-    
-    console.log('✅ Processing order.paid event');
 
     // Extract order ID from the webhook data
     const orderId = request.body.data?.id;
@@ -161,6 +166,15 @@ export const handleOrderPaidWebhook = async (
       return reply.send({
         success: true,
         message: 'AI response already generated for this order'
+      });
+    }
+
+    // Check if the order status is actually 'paid'
+    if (data?.status !== 'paid') {
+      console.log('⚠️  Order status is not paid:', data?.status);
+      return reply.send({
+        success: true,
+        message: 'Order status is not paid yet'
       });
     }
 
