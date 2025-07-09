@@ -6,8 +6,11 @@ const goalMapping: Record<string, Objetivo> = {
   'ganhar_peso': Objetivo.GANHAR_MASSA_MUSCULAR,
   'ganhar peso': Objetivo.GANHAR_MASSA_MUSCULAR,
   'emagrecer': Objetivo.EMAGRECER,
+  'emagrecer_massa': Objetivo.EMAGRECER_MASSA,
   'emagrecer+massa': Objetivo.EMAGRECER_MASSA,
+  'ganhar_massa': Objetivo.GANHAR_MASSA_MUSCULAR,
   'ganhar massa muscular': Objetivo.GANHAR_MASSA_MUSCULAR,
+  'definicao_ganho': Objetivo.DEFINICAO_MUSCULAR_GANHAR,
   'definicao muscular + ganhar massa': Objetivo.DEFINICAO_MUSCULAR_GANHAR,
 };
 
@@ -82,8 +85,11 @@ export const generatePromptSchema = z.object({
 });
 
 export const generatePromptResponseSchema = z.object({
-  dietId: z.string().uuid(),
-  pixQrCodeUrl: z.string().url().optional(),
+  success: z.boolean(),
+  data: z.object({
+    dietId: z.string().uuid(),
+    message: z.string().optional(),
+  }),
 });
 
 export const getGeneratedPromptResponseSchema = z.object({
@@ -99,6 +105,57 @@ export const getGeneratedPromptResponseSchema = z.object({
   }),
 });
 
+export const createCheckoutSchema = z.object({
+  dietId: z.string().uuid('DietId must be a valid UUID'),
+});
+
+export const createCheckoutResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    dietId: z.string().uuid(),
+    orderId: z.string(),
+    qrCodeUrl: z.string().optional(),
+    qrCode: z.string().optional(),
+    status: z.string(),
+    amount: z.number(),
+    expiresAt: z.string().optional(),
+    message: z.string(),
+    last_transaction: z.object({
+      id: z.string(),
+      transaction_type: z.string(),
+      gateway_id: z.string(),
+      amount: z.number(),
+      status: z.string(),
+      success: z.boolean(),
+      gateway_response: z.object({}).passthrough(),
+      antifraud_response: z.object({}).passthrough(),
+      metadata: z.object({}).passthrough(),
+      pix_provider_tid: z.string().optional(),
+      qr_code: z.string(),
+      qr_code_url: z.string(),
+      expires_at: z.string(),
+    }).optional(),
+  }),
+});
+
+export const checkPaymentStatusParamsSchema = z.object({
+  orderId: z.string().min(1, 'Order ID is required'),
+});
+
+export const checkPaymentStatusResponseSchema = z.object({
+  success: z.boolean(),
+  paid: z.boolean().optional(),
+  processing: z.boolean().optional(),
+  status: z.string().optional(),
+  message: z.string(),
+  data: z.object({
+    dietId: z.string().uuid(),
+    aiResponse: z.string().optional(),
+    orderStatus: z.string(),
+    createdAt: z.string(),
+  }).optional(),
+});
+
 export const promptErrorResponseSchema = z.object({
   success: z.boolean(),
   error: z.string(),
@@ -107,3 +164,7 @@ export const promptErrorResponseSchema = z.object({
 export type GeneratePromptRequest = z.infer<typeof generatePromptSchema>;
 export type GeneratePromptResponse = z.infer<typeof generatePromptResponseSchema>;
 export type GetGeneratedPromptResponse = z.infer<typeof getGeneratedPromptResponseSchema>;
+export type CreateCheckoutRequest = z.infer<typeof createCheckoutSchema>;
+export type CreateCheckoutResponse = z.infer<typeof createCheckoutResponseSchema>;
+export type CheckPaymentStatusParams = z.infer<typeof checkPaymentStatusParamsSchema>;
+export type CheckPaymentStatusResponse = z.infer<typeof checkPaymentStatusResponseSchema>;

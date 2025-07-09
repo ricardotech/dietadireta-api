@@ -303,7 +303,7 @@ export const createCheckout = async (
     const { dietId } = request.body;
     const userId = request.user.userId;
 
-    // Find the diet record
+    // Find the diet record with user data
     const dietRepository = AppDataSource.getRepository(Diet);
     const diet = await dietRepository.findOne({
       where: { id: dietId, userId }
@@ -318,15 +318,85 @@ export const createCheckout = async (
 
     // Check if order already exists
     if (diet.membrosOrderId) {
-      return reply.status(400).send({
+      // If order exists, return existing order data
+      const membrosApiService = new MembrosApiService();
+      try {
+        const existingOrder = await membrosApiService.getOrder(diet.membrosOrderId);
+        return reply.send({
+          success: true,
+          data: {
+            dietId: diet.id,
+            orderId: existingOrder.id,
+            qrCodeUrl: existingOrder.last_transaction?.qr_code_url,
+            qrCode: existingOrder.last_transaction?.qr_code,
+            status: existingOrder.status,
+            amount: existingOrder.amount,
+            expiresAt: existingOrder.last_transaction?.expires_at,
+            message: 'Existing order found. Please complete the payment.',
+            last_transaction: existingOrder.last_transaction
+          }
+        });
+      } catch (error) {
+        console.log('Error fetching existing order, creating new one:', error);
+      }
+    }
+
+    // Get user data for the order
+    const userDataRepository = AppDataSource.getRepository(UserData);
+    const userData = await userDataRepository.findOne({
+      where: { id: userId }
+    });
+
+    if (!userData) {
+      return reply.status(404).send({
         success: false,
-        error: 'Order already exists for this diet'
+        error: 'User data not found'
       });
     }
 
-    // Create order in membros-api
+    // Create order in membros-api with real user data
     const membrosApiService = new MembrosApiService();
-    const membrosOrder = await membrosApiService.createOrder();
+    const orderData = {
+      closed: true,
+      customer: {
+        id: userData.id,
+        name: userData.email.split('@')[0], // Use email prefix as name fallback
+        type: 'individual' as const,
+        email: userData.email,
+        document: '00000000000', // Placeholder document
+        phones: {
+          mobile_phone: {
+            country_code: '55',
+            area_code: '11',
+            number: userData.phoneNumber || '900000000'
+          }
+        },
+        address: {
+          street: 'Endereço não informado',
+          number: 1,
+          zip_code: '00000000',
+          neighborhood: 'Centro',
+          city: 'São Paulo',
+          state: 'SP',
+          country: 'BR'
+        }
+      },
+      items: [
+        {
+          code: dietId,
+          amount: 990, // R$ 9,90 in cents
+          description: 'Dieta Personalizada',
+          quantity: 1,
+          metadata: {
+            customerId: userData.id,
+            creatorId: userData.id // Using userId as creatorId for now
+          }
+        }
+      ],
+      totalAmount: 990
+    };
+
+    const membrosOrder = await membrosApiService.createOrder(orderData);
 
     console.log('Membros API Response:', JSON.stringify(membrosOrder, null, 2));
 
@@ -352,7 +422,8 @@ export const createCheckout = async (
         status: membrosOrder.status,
         amount: membrosOrder.amount,
         expiresAt: membrosOrder.last_transaction?.expires_at,
-        message: 'Checkout created successfully. Please complete the payment to receive your diet plan.'
+        message: 'Checkout created successfully. Please complete the payment to receive your diet plan.',
+        last_transaction: membrosOrder.last_transaction
       }
     });
   } catch (error) {
