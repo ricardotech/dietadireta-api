@@ -216,14 +216,25 @@ export class MembrosApiService {
     
     const url = `${this.config.baseUrl}/v2/orders/pix`;
     
-    // Log the request for debugging
-    console.log('Creating order with data:', JSON.stringify(dataToSend, null, 2));
-    
     // For now, we'll use a placeholder auth header since we don't have real API keys
     // In production, you would use: `Bearer ${this.config.publicKey}:${this.config.secretKey}`
     const authHeader = this.config.publicKey && this.config.secretKey 
       ? `Bearer ${this.config.publicKey}:${this.config.secretKey}`
       : 'Bearer test_public_key:test_secret_key';
+    
+    const requestBody = JSON.stringify(dataToSend);
+    
+    // Log the exact URL and body JSON before sending the request
+    console.log('=== MEMBROS API REQUEST ===');
+    console.log('URL:', url);
+    console.log('Method: POST');
+    console.log('Headers:', {
+      'Content-Type': 'application/json',
+      'Authorization': authHeader
+    });
+    console.log('Body JSON:', requestBody);
+    console.log('Body JSON (formatted):', JSON.stringify(dataToSend, null, 2));
+    console.log('=== END MEMBROS API REQUEST ===');
     
     const response = await fetch(url, {
       method: 'POST',
@@ -231,12 +242,16 @@ export class MembrosApiService {
         'Content-Type': 'application/json',
         'Authorization': authHeader
       },
-      body: JSON.stringify(dataToSend)
+      body: requestBody
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('Membros API error response:', errorData);
+      console.log('=== MEMBROS API ERROR RESPONSE ===');
+      console.log('Status:', response.status);
+      console.log('Status Text:', response.statusText);
+      console.log('Error Data:', JSON.stringify(errorData, null, 2));
+      console.log('=== END MEMBROS API ERROR RESPONSE ===');
       
       // If we get an auth error and we're using test keys, return mock data for development
       if (response.status === 401 && authHeader.includes('test_')) {
@@ -247,7 +262,13 @@ export class MembrosApiService {
       throw new Error(`Membros API error: ${response.status} - ${errorData.message || JSON.stringify(errorData) || 'Unknown error'}`);
     }
 
-    return await response.json();
+    const responseData = await response.json();
+    console.log('=== MEMBROS API SUCCESS RESPONSE ===');
+    console.log('Status:', response.status);
+    console.log('Response Data:', JSON.stringify(responseData, null, 2));
+    console.log('=== END MEMBROS API SUCCESS RESPONSE ===');
+    
+    return responseData;
   }
 
   // Method specifically for testing with mock data

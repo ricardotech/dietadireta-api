@@ -14,6 +14,31 @@ import { generatePromptSchema } from '../types/prompt';
 import { OpenAIService } from '../services/openaiService';
 import { MembrosApiService } from '../services/membrosApiService';
 
+// Function to parse phone number from format (11) 91579-9139 to Membros API format
+function parsePhoneNumber(phoneNumber: string): { country_code: string; area_code: string; number: string } {
+  // Remove all non-digit characters
+  const digitsOnly = phoneNumber.replace(/\D/g, '');
+  
+  // If less than 10 digits, use fallback
+  if (digitsOnly.length < 10) {
+    return {
+      country_code: '55',
+      area_code: '11',
+      number: '900000000'
+    };
+  }
+  
+  // Extract area code (first 2 digits) and number (remaining digits)
+  const areaCode = digitsOnly.substring(0, 2);
+  const number = digitsOnly.substring(2);
+  
+  return {
+    country_code: '55',
+    area_code: areaCode,
+    number: number
+  };
+}
+
 interface GeneratePromptRequestBody {
   weight: string;
   height: string;
@@ -296,14 +321,14 @@ export const checkPaymentStatus = async (
 };
 
 export const createCheckout = async (
-  request: FastifyRequest<{ Body: { dietId?: string; userData?: any } }>,
+  request: FastifyRequest<{ Body: { dietId?: string; userData?: any; userInfo?: any } }>,
   reply: FastifyReply
 ) => {
   try {
-    const { dietId, userData: requestUserData } = request.body;
+    const { dietId, userData: requestUserData, userInfo } = request.body;
     const userId = request.user.userId;
 
-    console.log('Checkout request:', { dietId, hasUserData: !!requestUserData, userId });
+    console.log('Checkout request:', { dietId, hasUserData: !!requestUserData, hasUserInfo: !!userInfo, userId });
 
     let diet: any = null;
 
@@ -497,20 +522,25 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
 
     // Create order in membros-api with real user data
     const membrosApiService = new MembrosApiService();
+    
+    // Use userInfo if available from the frontend, otherwise use database record
+    const phoneNumber = userInfo?.phoneNumber || userDataRecord.phoneNumber || '(11) 900000000';
+    const email = userInfo?.email || userDataRecord.email;
+    const cpf = userInfo?.cpf || userDataRecord.cpf;
+    
+    console.log('Using phone number for order:', phoneNumber);
+    console.log('Parsed phone number:', parsePhoneNumber(phoneNumber));
+    
     const orderData = {
       closed: true,
       customer: {
         id: userDataRecord.id,
-        name: userDataRecord.email.split('@')[0], // Use email prefix as name fallback
+        name: email.split('@')[0], // Use email prefix as name fallback
         type: 'individual' as const,
-        email: userDataRecord.email,
-        document: userDataRecord.cpf.replace(/\D/g, ''), // Remove dots and dashes from CPF
+        email: email,
+        document: cpf.replace(/\D/g, ''), // Remove dots and dashes from CPF
         phones: {
-          mobile_phone: {
-            country_code: '55',
-            area_code: '11',
-            number: userDataRecord.phoneNumber || '900000000'
-          }
+          mobile_phone: parsePhoneNumber(phoneNumber)
         },
         address: {
           street: 'Avenida Beira Rio',
