@@ -296,23 +296,164 @@ export const checkPaymentStatus = async (
 };
 
 export const createCheckout = async (
-  request: FastifyRequest<{ Body: { dietId: string } }>,
+  request: FastifyRequest<{ Body: { dietId?: string; userData?: any } }>,
   reply: FastifyReply
 ) => {
   try {
-    const { dietId } = request.body;
+    const { dietId, userData: requestUserData } = request.body;
     const userId = request.user.userId;
 
-    // Find the diet record with user data
-    const dietRepository = AppDataSource.getRepository(Diet);
-    const diet = await dietRepository.findOne({
-      where: { id: dietId, userId }
-    });
+    console.log('Checkout request:', { dietId, hasUserData: !!requestUserData, userId });
 
+    let diet: any = null;
+
+    // Try to find existing diet if dietId is provided
+    if (dietId) {
+      const dietRepository = AppDataSource.getRepository(Diet);
+      diet = await dietRepository.findOne({
+        where: { id: dietId, userId }
+      });
+      console.log('Found existing diet:', !!diet);
+    }
+
+    // If no diet found and we have userData, create a new one
+    if (!diet && requestUserData) {
+      console.log('Creating new diet with provided userData');
+      
+      // Get user data from database
+      const userDataRepository = AppDataSource.getRepository(UserData);
+      let userRecord = await userDataRepository.findOne({
+        where: { id: userId }
+      });
+
+      if (!userRecord) {
+        return reply.status(404).send({
+          success: false,
+          error: 'User data not found'
+        });
+      }
+
+      // Update user record with provided data if available
+      if (requestUserData.weight) userRecord.peso = parseFloat(requestUserData.weight);
+      if (requestUserData.height) userRecord.altura = parseFloat(requestUserData.height);
+      if (requestUserData.age) userRecord.idade = parseInt(requestUserData.age);
+      if (requestUserData.goal) {
+        // Map goal to proper enum value that matches the database enum
+        const goalMapping: Record<string, string> = {
+          'emagrecer': 'emagrecer',
+          'emagrecer_massa': 'emagrecer+massa',
+          'emagrecer+massa': 'emagrecer+massa',
+          'ganhar_massa': 'ganhar massa muscular',
+          'ganhar massa muscular': 'ganhar massa muscular',
+          'definicao_ganho': 'definicao muscular + ganhar massa',
+          'definicao muscular + ganhar massa': 'definicao muscular + ganhar massa'
+        };
+        userRecord.objetivo = goalMapping[requestUserData.goal] || requestUserData.goal;
+      }
+      if (requestUserData.calories) userRecord.caloriasDiarias = parseInt(requestUserData.calories);
+      if (requestUserData.gender) userRecord.genero = requestUserData.gender;
+      if (requestUserData.schedule) userRecord.horariosParaRefeicoes = requestUserData.schedule;
+      if (requestUserData.activityLevel) userRecord.nivelAtividade = requestUserData.activityLevel;
+      if (requestUserData.workoutPlan) userRecord.planoTreino = requestUserData.workoutPlan;
+
+      // Update meal preferences if provided
+      if (requestUserData.breakfast) {
+        userRecord.cafeDaManha = requestUserData.breakfast.split(', ').filter((item: string) => item.trim());
+      }
+      if (requestUserData.morningSnack) {
+        userRecord.lancheDaManha = requestUserData.morningSnack.split(', ').filter((item: string) => item.trim());
+      }
+      if (requestUserData.lunch) {
+        userRecord.almoco = requestUserData.lunch.split(', ').filter((item: string) => item.trim());
+      }
+      if (requestUserData.afternoonSnack) {
+        userRecord.lancheDaTarde = requestUserData.afternoonSnack.split(', ').filter((item: string) => item.trim());
+      }
+      if (requestUserData.dinner) {
+        userRecord.janta = requestUserData.dinner.split(', ').filter((item: string) => item.trim());
+      }
+
+      await userDataRepository.save(userRecord);
+
+      // Create the diet prompt
+      const nutritionPrompt = `
+Você é um nutricionista especializado em criar planos alimentares personalizados. Com base nos dados fornecidos, crie um plano nutricional detalhado.
+
+DADOS DO USUÁRIO:
+- Peso: ${userRecord.peso}kg
+- Altura: ${userRecord.altura}cm
+- Idade: ${userRecord.idade} anos
+- Gênero: ${userRecord.genero}
+- Objetivo: ${userRecord.objetivo}
+- Meta de calorias: ${userRecord.caloriasDiarias} kcal/dia
+- Nível de atividade: ${userRecord.nivelAtividade}
+- Tipo de treino: ${userRecord.planoTreino}
+- Horários das refeições: ${userRecord.horariosParaRefeicoes}
+
+PREFERÊNCIAS ALIMENTARES:
+- Café da manhã: ${userRecord.cafeDaManha.join(', ')}
+- Lanche da manhã: ${userRecord.lancheDaManha.join(', ')}
+- Almoço: ${userRecord.almoco.join(', ')}
+- Lanche da tarde: ${userRecord.lancheDaTarde.join(', ')}
+- Jantar: ${userRecord.janta.join(', ')}
+
+INSTRUÇÕES:
+1. Crie um plano alimentar completo para uma semana
+2. Distribua as calorias adequadamente entre as refeições
+3. Considere o objetivo (ganhar peso, perder peso, manter peso)
+4. Inclua as preferências alimentares mencionadas
+5. Ajuste as porções conforme o nível de atividade física
+6. Forneça dicas nutricionais específicas para o objetivo
+7. Inclua informações sobre hidratação
+8. Sugira suplementação se necessário
+
+Por favor, forneça o plano alimentar estruturado e detalhado.
+      `.trim();
+
+      // Create new Diet record
+      const dietRepository = AppDataSource.getRepository(Diet);
+      diet = dietRepository.create({
+        userId: userRecord.id,
+        prompt: nutritionPrompt,
+        aiResponse: '', // Will be filled after payment confirmation
+        orderStatus: OrderStatus.PENDING,
+        userData: {
+          weight: userRecord.peso,
+          height: userRecord.altura,
+          age: userRecord.idade,
+          goal: userRecord.objetivo,
+          dailyCalories: userRecord.caloriasDiarias,
+          gender: userRecord.genero,
+          mealSchedule: userRecord.horariosParaRefeicoes,
+          activityLevel: userRecord.nivelAtividade,
+          workoutPlan: userRecord.planoTreino,
+          breakfast: userRecord.cafeDaManha,
+          morningSnack: userRecord.lancheDaManha,
+          lunch: userRecord.almoco,
+          afternoonSnack: userRecord.lancheDaTarde,
+          dinner: userRecord.janta
+        }
+      });
+
+      await dietRepository.save(diet);
+      console.log('Created new diet with ID:', diet.id);
+    }
+
+    // If still no diet, try to get the most recent one for this user
+    if (!diet) {
+      console.log('No diet found, getting most recent for user');
+      const dietRepository = AppDataSource.getRepository(Diet);
+      diet = await dietRepository.findOne({
+        where: { userId },
+        order: { createdAt: 'DESC' }
+      });
+    }
+
+    // If still no diet, return error
     if (!diet) {
       return reply.status(404).send({
         success: false,
-        error: 'Diet not found'
+        error: 'No diet found. Please provide user data to create a new diet plan.'
       });
     }
 
@@ -343,11 +484,11 @@ export const createCheckout = async (
 
     // Get user data for the order
     const userDataRepository = AppDataSource.getRepository(UserData);
-    const userData = await userDataRepository.findOne({
+    const userDataRecord = await userDataRepository.findOne({
       where: { id: userId }
     });
 
-    if (!userData) {
+    if (!userDataRecord) {
       return reply.status(404).send({
         success: false,
         error: 'User data not found'
@@ -359,37 +500,38 @@ export const createCheckout = async (
     const orderData = {
       closed: true,
       customer: {
-        id: userData.id,
-        name: userData.email.split('@')[0], // Use email prefix as name fallback
+        id: userDataRecord.id,
+        name: userDataRecord.email.split('@')[0], // Use email prefix as name fallback
         type: 'individual' as const,
-        email: userData.email,
+        email: userDataRecord.email,
         document: '00000000000', // Placeholder document
         phones: {
           mobile_phone: {
             country_code: '55',
             area_code: '11',
-            number: userData.phoneNumber || '900000000'
+            number: userDataRecord.phoneNumber || '900000000'
           }
         },
         address: {
-          street: 'Endereço não informado',
-          number: 1,
-          zip_code: '00000000',
-          neighborhood: 'Centro',
-          city: 'São Paulo',
-          state: 'SP',
+          street: 'Avenida Beira Rio',
+          number: 0, // S/N (sem número)
+          complement: 'Quadra06 Lote 10 Casa 3 Sala 1 (S/N)',
+          zip_code: '75113-210',
+          neighborhood: 'Andracel Center',
+          city: 'Anápolis',
+          state: 'GO',
           country: 'BR'
         }
       },
       items: [
         {
-          code: dietId,
+          code: diet.id || 'diet-plan', // Use diet.id or fallback
           amount: 990, // R$ 9,90 in cents
           description: 'Dieta Personalizada',
           quantity: 1,
           metadata: {
-            customerId: userData.id,
-            creatorId: userData.id // Using userId as creatorId for now
+            customerId: userDataRecord.id,
+            creatorId: userDataRecord.id // Using userId as creatorId for now
           }
         }
       ],
@@ -401,6 +543,7 @@ export const createCheckout = async (
     console.log('Membros API Response:', JSON.stringify(membrosOrder, null, 2));
 
     // Update Diet record with payment info
+    const dietRepository = AppDataSource.getRepository(Diet);
     diet.membrosOrderId = membrosOrder.id;
     diet.membrosOrderStatus = membrosOrder.status;
     

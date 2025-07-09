@@ -111,7 +111,24 @@ const getGeneratedPromptResponseSchema = z.object({
 });
 
 const createCheckoutSchema = z.object({
-  dietId: z.string().uuid('DietId must be a valid UUID'),
+  dietId: z.string().uuid('DietId must be a valid UUID').optional(),
+  // Optional user data to create diet if dietId doesn't exist
+  userData: z.object({
+    weight: z.string().optional(),
+    height: z.string().optional(),
+    age: z.string().optional(),
+    goal: z.string().optional(),
+    calories: z.string().optional(),
+    gender: z.nativeEnum(Genero).optional(),
+    schedule: z.string().optional(),
+    activityLevel: z.nativeEnum(NivelAtividade).optional(),
+    workoutPlan: z.nativeEnum(TipoPlanoTreino).optional(),
+    breakfast: z.string().optional(),
+    morningSnack: z.string().optional(),
+    lunch: z.string().optional(),
+    afternoonSnack: z.string().optional(),
+    dinner: z.string().optional(),
+  }).optional(),
 });
 
 const createCheckoutResponseSchema = z.object({
