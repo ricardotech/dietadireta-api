@@ -19,7 +19,7 @@ const userRepository = AppDataSource.getRepository(UserData);
 export const signUp = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const validatedData = signUpSchema.parse(request.body);
-    const { email, phoneNumber, password } = validatedData;
+    const { email, phoneNumber, cpf, password } = validatedData;
 
     // Check for existing email
     const existingUser = await userRepository.findOne({
@@ -45,6 +45,17 @@ export const signUp = async (request: FastifyRequest, reply: FastifyReply) => {
       }
     }
 
+    // Check for existing CPF
+    const existingCpf = await userRepository.findOne({
+      where: { cpf },
+    });
+
+    if (existingCpf) {
+      return reply.status(400).send({
+        error: 'Usuário com este CPF já existe',
+      });
+    }
+
     const hashedPassword = await hashPassword(password);
 
     const userToken = uuidv4();
@@ -52,6 +63,7 @@ export const signUp = async (request: FastifyRequest, reply: FastifyReply) => {
     const user = userRepository.create({
       email,
       phoneNumber,
+      cpf,
       password: hashedPassword,
       token: userToken,
       // Set default values for required fields
@@ -80,6 +92,7 @@ export const signUp = async (request: FastifyRequest, reply: FastifyReply) => {
         id: user.id,
         email: user.email,
         phoneNumber: user.phoneNumber || undefined,
+        cpf: user.cpf,
       },
       token: jwtToken,
       userToken: userToken,
@@ -129,6 +142,7 @@ export const signIn = async (request: FastifyRequest, reply: FastifyReply) => {
         id: user.id,
         email: user.email,
         phoneNumber: user.phoneNumber || undefined,
+        cpf: user.cpf,
       },
       token: jwtToken,
       userToken: user.token || '',
@@ -259,7 +273,7 @@ export const whoami = async (request: FastifyRequest, reply: FastifyReply) => {
     
     const user = await userRepository.findOne({
       where: { id: userId },
-      select: ['id', 'email', 'phoneNumber'],
+      select: ['id', 'email', 'phoneNumber', 'cpf'],
     });
 
     if (!user) {
@@ -272,6 +286,7 @@ export const whoami = async (request: FastifyRequest, reply: FastifyReply) => {
       id: user.id,
       email: user.email,
       phoneNumber: user.phoneNumber || '',
+      cpf: user.cpf,
     });
   } catch (error) {
     console.error('Erro ao buscar dados do usuário:', error);

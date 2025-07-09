@@ -504,7 +504,7 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
         name: userDataRecord.email.split('@')[0], // Use email prefix as name fallback
         type: 'individual' as const,
         email: userDataRecord.email,
-        document: '00000000000', // Placeholder document
+        document: userDataRecord.cpf.replace(/\D/g, ''), // Remove dots and dashes from CPF
         phones: {
           mobile_phone: {
             country_code: '55',

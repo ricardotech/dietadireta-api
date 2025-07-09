@@ -20,6 +20,9 @@ export class UserData {
   @Column({ type: 'varchar', length: 20, unique: true, nullable: true })
   phoneNumber?: string;
 
+  @Column({ type: 'varchar', length: 14, unique: true })
+  cpf: string;
+
   @Column({ type: 'varchar', length: 255 })
   password: string;
 

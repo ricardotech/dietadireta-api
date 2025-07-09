@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const signUpSchema = z.object({
   email: z.string().email('Invalid email format'),
   phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits').optional(),
+  cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, 'CPF format must be 000.000.000-00'),
   password: z.string().min(8, 'Password must be at least 8 characters long'),
 });
 
@@ -19,6 +20,7 @@ export const authResponseSchema = z.object({
     id: z.string().uuid(),
     email: z.string().email(),
     phoneNumber: z.string().optional(),
+    cpf: z.string(),
   }),
   token: z.string(),
   userToken: z.string(),
@@ -34,6 +36,7 @@ export interface AuthResponse {
     id: string;
     email: string;
     phoneNumber?: string;
+    cpf: string;
   };
   token: string;
   userToken: string;
