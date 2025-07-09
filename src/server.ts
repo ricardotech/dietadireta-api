@@ -90,7 +90,7 @@ export const initializeServer = async () => {
 
     await fastify.register(helmet);
     await fastify.register(cors, {
-      origin: env.NODE_ENV === 'production' ? false : true,
+      origin: (env.NODE_ENV === 'production' ? ['https://dietabox.com', 'https://www.dietabox.com'] : '*'),
     });
     await fastify.register(jwt, {
       secret: env.JWT_SECRET,
