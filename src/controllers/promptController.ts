@@ -294,14 +294,35 @@ export const checkPaymentStatus = async (
       });
     }
 
-    // If payment is confirmed but diet is not ready yet
+    // If payment is confirmed but diet is not ready yet, generate it now
     if (orderStatus.status === 'paid' && !diet.aiResponse) {
-      return reply.send({
-        success: true,
-        paid: true,
-        processing: true,
-        message: 'Payment confirmed. Diet is being generated...'
-      });
+      try {
+        console.log('🤖 Generating AI diet response for manual payment verification');
+        const aiResponse = await OpenAIService.generateNutritionPlan(diet.prompt);
+        diet.aiResponse = aiResponse;
+        await dietRepository.save(diet);
+        
+        console.log('✅ AI diet response generated successfully via manual verification');
+        
+        return reply.send({
+          success: true,
+          paid: true,
+          data: {
+            dietId: diet.id,
+            aiResponse: diet.aiResponse,
+            orderStatus: orderStatus.status,
+            createdAt: diet.createdAt
+          }
+        });
+      } catch (aiError) {
+        console.error('❌ Failed to generate AI response during manual verification:', aiError);
+        return reply.send({
+          success: true,
+          paid: true,
+          processing: true,
+          message: 'Payment confirmed. Diet generation failed, please try again later.'
+        });
+      }
     }
 
     // Payment not confirmed yet
