@@ -49,7 +49,7 @@ export const initializeServer = async () => {
         },
         servers: [
           {
-            url: env.NODE_ENV === 'production' ? 'https://api.nutri-online.com' : 'http://localhost:3000',
+            url: env.NODE_ENV === 'production' ? 'https://api.nutri-online.com' : 'http://localhost:3100',
             description: env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
           },
         ],

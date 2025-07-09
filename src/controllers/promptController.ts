@@ -135,15 +135,12 @@ INSTRUÇÕES:
 Por favor, forneça o plano alimentar estruturado e detalhado.
     `.trim();
 
-    // Step 1: Generate AI diet using OpenAI
-    const aiResponse = await OpenAIService.generateNutritionPlan(nutritionPrompt);
-
-    // Step 2: Create Diet record with AI response
+    // Create Diet record without AI response (will be generated after payment)
     const dietRepository = AppDataSource.getRepository(Diet);
     const diet = dietRepository.create({
       userId: userData.id,
       prompt: nutritionPrompt,
-      aiResponse: aiResponse,
+      aiResponse: '', // Will be filled after payment confirmation
       orderStatus: OrderStatus.PENDING,
       userData: {
         weight: userData.peso,
@@ -165,47 +162,12 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
 
     await dietRepository.save(diet);
 
-    // Step 3: Create order in membros-api
-    const membrosApiService = new MembrosApiService();
-    
-    const orderData = {
-      closed: true,
-      customer_id: userData.id,
-      items: [
-        {
-          amount: 990, // R$ 9,90 in cents
-          description: 'Plano Nutricional Personalizado',
-          quantity: 1
-        }
-      ],
-      totalAmount: 990
-    };
-
-    const membrosOrder = await membrosApiService.createOrder(orderData);
-
-    console.log('Membros API Response:', JSON.stringify(membrosOrder, null, 2));
-
-    // Step 4: Update Diet record with payment info
-    diet.membrosOrderId = membrosOrder.id;
-    diet.membrosOrderStatus = membrosOrder.status;
-    
-    // Extract PIX QR code URL from last_transaction
-    if (membrosOrder.last_transaction?.qr_code_url) {
-      diet.pixQrCodeUrl = membrosOrder.last_transaction.qr_code_url;
-    }
-
-    await dietRepository.save(diet);
-
-    // Step 5: Return response with QR code URL
+    // Return the diet ID for checkout
     return reply.send({
       success: true,
       data: {
         dietId: diet.id,
-        orderId: membrosOrder.id,
-        qrCodeUrl: membrosOrder.last_transaction?.qr_code_url,
-        status: membrosOrder.status,
-        amount: membrosOrder.amount,
-        expiresAt: membrosOrder.last_transaction?.expires_at
+        message: 'Diet plan created successfully. Use the dietId to proceed with checkout.'
       }
     });
   } catch (error) {
@@ -326,6 +288,75 @@ export const checkPaymentStatus = async (
     });
   } catch (error) {
     console.error('Error checking payment status:', error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
+
+export const createCheckout = async (
+  request: FastifyRequest<{ Body: { dietId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { dietId } = request.body;
+    const userId = request.user.userId;
+
+    // Find the diet record
+    const dietRepository = AppDataSource.getRepository(Diet);
+    const diet = await dietRepository.findOne({
+      where: { id: dietId, userId }
+    });
+
+    if (!diet) {
+      return reply.status(404).send({
+        success: false,
+        error: 'Diet not found'
+      });
+    }
+
+    // Check if order already exists
+    if (diet.membrosOrderId) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Order already exists for this diet'
+      });
+    }
+
+    // Create order in membros-api
+    const membrosApiService = new MembrosApiService();
+    const membrosOrder = await membrosApiService.createOrder();
+
+    console.log('Membros API Response:', JSON.stringify(membrosOrder, null, 2));
+
+    // Update Diet record with payment info
+    diet.membrosOrderId = membrosOrder.id;
+    diet.membrosOrderStatus = membrosOrder.status;
+    
+    // Extract PIX QR code URL from last_transaction
+    if (membrosOrder.last_transaction?.qr_code_url) {
+      diet.pixQrCodeUrl = membrosOrder.last_transaction.qr_code_url;
+    }
+
+    await dietRepository.save(diet);
+
+    // Return response with QR code URL for payment
+    return reply.send({
+      success: true,
+      data: {
+        dietId: diet.id,
+        orderId: membrosOrder.id,
+        qrCodeUrl: membrosOrder.last_transaction?.qr_code_url,
+        qrCode: membrosOrder.last_transaction?.qr_code,
+        status: membrosOrder.status,
+        amount: membrosOrder.amount,
+        expiresAt: membrosOrder.last_transaction?.expires_at,
+        message: 'Checkout created successfully. Please complete the payment to receive your diet plan.'
+      }
+    });
+  } catch (error) {
+    console.error('Error creating checkout:', error);
     return reply.status(500).send({
       success: false,
       error: 'Internal server error'

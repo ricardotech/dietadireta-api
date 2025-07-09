@@ -1,6 +1,6 @@
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import type { FastifyInstance } from 'fastify';
-import { generatePrompt, getDiet, checkPaymentStatus } from '../controllers/promptController';
+import { generatePrompt, getDiet, checkPaymentStatus, createCheckout } from '../controllers/promptController';
 import { generatePromptSchema, generatePromptResponseSchema, getGeneratedPromptResponseSchema, promptErrorResponseSchema } from '../types/prompt';
 import { authenticateBearer } from '../utils/auth';
 
@@ -85,5 +85,48 @@ export const promptRoutes = async (fastify: FastifyInstance) => {
       },
     },
     handler: checkPaymentStatus,
+  });
+
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: 'POST',
+    url: '/checkout',
+    preHandler: authenticateBearer,
+    schema: {
+      description: 'Create checkout order for diet plan',
+      tags: ['Payment'],
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        properties: {
+          dietId: { type: 'string' }
+        },
+        required: ['dietId']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'object',
+              properties: {
+                dietId: { type: 'string' },
+                orderId: { type: 'string' },
+                qrCodeUrl: { type: 'string' },
+                qrCode: { type: 'string' },
+                status: { type: 'string' },
+                amount: { type: 'number' },
+                expiresAt: { type: 'string' },
+                message: { type: 'string' }
+              }
+            }
+          }
+        },
+        401: promptErrorResponseSchema,
+        404: promptErrorResponseSchema,
+        500: promptErrorResponseSchema,
+      },
+    },
+    handler: createCheckout,
   });
 };

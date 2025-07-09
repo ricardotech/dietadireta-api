@@ -5,21 +5,78 @@ import { OpenAIService } from '../services/openaiService';
 
 interface WebhookRequestBody {
   event: string;
-  timestamp: string;
-  order: {
+  created_at: string;
+  data: {
     id: string;
-    customer_id: string;
-    amount: number;
+    code: string;
+    pagarme_order_id?: string;
+    paymentMethod: string;
     status: string;
-    payment_method: string;
-    items: Array<{
-      description: string;
+    totalAmount: number;
+    legacy_items?: Array<{
+      amount: string;
       quantity: number;
-      amount: number;
+      productId: string;
+      description: string;
+      productName: string;
     }>;
-    created_at: string;
-    updated_at: string;
-    metadata?: Record<string, any>;
+    legacy_customer?: {
+      name: string;
+      type: string;
+      email: string;
+      phone: {
+        number: string;
+        area_code: string;
+        country_code: string;
+      };
+      address: {
+        city: string;
+        state: string;
+        number: string;
+        street: string;
+        country: string;
+        zip_code: string;
+        neighborhood: string;
+      };
+      document: string;
+      document_type: string;
+    };
+    legacy_payments?: Array<any>;
+    legacy_transactions?: Array<any>;
+    createdAt: string;
+    updatedAt: string;
+    user?: {
+      id: string;
+      name: string;
+      avatar: string | null;
+      document: string;
+      document_type: string;
+      phone_country_code: string;
+      phone_area_code: string;
+      phone_number: string;
+      txPercentage: number;
+      recipient_id: string;
+      email: string;
+      status: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+    customer?: {
+      id: string;
+      pagarme_customer_id: string;
+      name: string;
+      email: string;
+      document: string;
+      document_type: string;
+      delinquent: boolean;
+      birthdate?: string;
+      metadata?: Record<string, any>;
+      phone_country_code: string;
+      phone_area_code: string;
+      phone_number: string;
+      createdAt: string;
+      updatedAt: string;
+    };
   };
 }
 
@@ -28,17 +85,16 @@ export const handleOrderPaidWebhook = async (
   reply: FastifyReply
 ) => {
   try {
-    const { event, order } = request.body;
+    const { event, data } = request.body;
     
     console.log('=== WEBHOOK RECEIVED ===');
     console.log('Timestamp:', new Date().toISOString());
     console.log('Event:', event);
     console.log('Full request body:', JSON.stringify(request.body, null, 2));
-    console.log('Order ID:', order?.id);
-    console.log('Order Status:', order?.status);
-    console.log('Customer ID:', order?.customer_id);
-    console.log('Payment Method:', order?.payment_method);
-    console.log('Amount:', order?.amount);
+    console.log('Order ID:', data?.id);
+    console.log('Order Status:', data?.status);
+    console.log('Payment Method:', data?.paymentMethod);
+    console.log('Amount:', data?.totalAmount);
     console.log('========================');
 
     // Check if this is a payment success event
@@ -53,7 +109,7 @@ export const handleOrderPaidWebhook = async (
     console.log('✅ Processing order.paid event');
 
     // Extract order ID from the webhook data
-    const orderId = request.body.order?.id;
+    const orderId = request.body.data?.id;
     
     if (!orderId) {
       console.error('❌ Order ID not found in webhook data');

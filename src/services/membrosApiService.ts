@@ -6,11 +6,38 @@ interface MembrosApiConfig {
 
 interface CreateOrderRequest {
   closed: boolean;
-  customer_id: string;
+  customer: {
+    id: string;
+    name: string;
+    type: 'individual' | 'business';
+    email: string;
+    document: string;
+    phones: {
+      mobile_phone: {
+        country_code: string;
+        area_code: string;
+        number: string;
+      };
+    };
+    address: {
+      street: string;
+      number: number;
+      zip_code: string;
+      neighborhood: string;
+      city: string;
+      state: string;
+      country: string;
+    };
+  };
   items: Array<{
+    code: string;
     amount: number;
     description: string;
     quantity: number;
+    metadata?: {
+      customerId: string;
+      creatorId: string;
+    };
   }>;
   totalAmount: number;
 }
@@ -89,15 +116,42 @@ export class MembrosApiService {
   private getMockOrderData(): CreateOrderRequest {
     return {
       "closed": true,
-      "customer_id": "3f4b2a77-9e5c-4c7d-856e-2f0b8e9c0a1d",
+      "customer": {
+        "id": "4d0a9f11-9783-4b97-b0f2-3a2a657f043a",
+        "name": "Ricardo Fonseca Sarti Domene",
+        "type": "individual",
+        "email": "ricardofsdomene@icloud.com",
+        "document": "37151994826",
+        "phones": {
+          "mobile_phone": {
+            "country_code": "55",
+            "area_code": "11",
+            "number": "915799139"
+          }
+        },
+        "address": {
+          "street": "Avenida Presidente Kennedy",
+          "number": 289,
+          "zip_code": "75040040",
+          "neighborhood": "Maracanã",
+          "city": "Anápolis",
+          "state": "GO",
+          "country": "BR"
+        }
+      },
       "items": [
         {
-          "amount": 990,
-          "description": "Plano Nutricional Personalizado",
-          "quantity": 1
+          "code": "d1e31583-3dd1-411c-99eb-1e06405c942e",
+          "amount": 1990,
+          "description": "Vestibulando",
+          "quantity": 1,
+          "metadata": {
+            "customerId": "4d0a9f11-9783-4b97-b0f2-3a2a657f043a",
+            "creatorId": "ebbf779e-6fc1-487c-9feb-d8721454cf5e"
+          }
         }
       ],
-      "totalAmount": 990
+      "totalAmount": 1990
     };
   }
 
@@ -107,16 +161,13 @@ export class MembrosApiService {
     
     const url = `${this.config.baseUrl}/v2/orders/pix`;
     
-    const authString = `${this.config.publicKey}:${this.config.secretKey}`;
-    
     // Log the request for debugging
     console.log('Creating order with data:', JSON.stringify(dataToSend, null, 2));
     
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authString}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(dataToSend)
     });
@@ -138,12 +189,10 @@ export class MembrosApiService {
   async getOrder(orderId: string): Promise<CreateOrderResponse> {
     const url = `${this.config.baseUrl}/v2/orders/${orderId}`;
     
-    const authString = `${this.config.publicKey}:${this.config.secretKey}`;
-    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${authString}`
+        'Content-Type': 'application/json'
       }
     });
 
