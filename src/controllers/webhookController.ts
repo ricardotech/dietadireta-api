@@ -198,8 +198,8 @@ export const handleOrderPaidWebhook = async (
     } catch (aiError) {
       console.error('❌ Failed to generate AI response:', aiError);
       console.error('AI Error details:', {
-        message: aiError.message,
-        stack: aiError.stack
+        message: aiError instanceof Error ? aiError.message : 'Unknown error',
+        stack: aiError instanceof Error ? aiError.stack : undefined
       });
       
       // Still update the payment status even if AI generation fails
@@ -213,8 +213,8 @@ export const handleOrderPaidWebhook = async (
   } catch (error) {
     console.error('=== WEBHOOK ERROR ===');
     console.error('Error processing order paid webhook:', error);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
+    console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('Error stack:', error instanceof Error ? error.stack : undefined);
     console.error('Request body that caused error:', JSON.stringify(request.body, null, 2));
     console.error('====================');
     
