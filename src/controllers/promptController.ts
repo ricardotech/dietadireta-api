@@ -270,26 +270,49 @@ export const checkPaymentStatus = async (
       });
     }
 
-    // Check payment status with Membros API
+    // Check if we already have a confirmed payment locally
+    if (diet.membrosOrderStatus === 'paid') {
+      // Already paid, just check if diet is ready
+      if (diet.aiResponse) {
+        return reply.send({
+          success: true,
+          paid: true,
+          message: 'Diet plan ready',
+          data: {
+            dietId: diet.id,
+            aiResponse: diet.aiResponse,
+            orderStatus: 'paid',
+            createdAt: diet.createdAt.toISOString()
+          }
+        });
+      }
+      // Payment confirmed but no AI response yet - this shouldn't happen but handle it
+      console.warn('Payment confirmed but no AI response found for diet:', diet.id);
+    }
+
+    // Check payment status with Membros API only if not already confirmed
     const membrosApiService = new MembrosApiService();
     const orderStatus = await membrosApiService.getOrder(orderId);
 
     console.log('Order status from Membros API:', orderStatus);
 
-    // Update local status
-    diet.membrosOrderStatus = orderStatus.status;
-    await dietRepository.save(diet);
+    // Update local status only if it changed
+    if (diet.membrosOrderStatus !== orderStatus.status) {
+      diet.membrosOrderStatus = orderStatus.status;
+      await dietRepository.save(diet);
+    }
 
     // If payment is confirmed and diet is ready, return the diet
     if (orderStatus.status === 'paid' && diet.aiResponse) {
       return reply.send({
         success: true,
         paid: true,
+        message: 'Diet plan ready',
         data: {
           dietId: diet.id,
           aiResponse: diet.aiResponse,
           orderStatus: orderStatus.status,
-          createdAt: diet.createdAt
+          createdAt: diet.createdAt.toISOString()
         }
       });
     }
@@ -307,11 +330,12 @@ export const checkPaymentStatus = async (
         return reply.send({
           success: true,
           paid: true,
+          message: 'Diet plan generated successfully',
           data: {
             dietId: diet.id,
             aiResponse: diet.aiResponse,
             orderStatus: orderStatus.status,
-            createdAt: diet.createdAt
+            createdAt: diet.createdAt.toISOString()
           }
         });
       } catch (aiError) {
@@ -325,12 +349,12 @@ export const checkPaymentStatus = async (
       }
     }
 
-    // Payment not confirmed yet
+    // Payment not confirmed yet - return quickly without generating diet
     return reply.send({
       success: true,
       paid: false,
       status: orderStatus.status,
-      message: 'Payment not confirmed yet'
+      message: orderStatus.status === 'pending' ? 'Aguardando pagamento via PIX' : 'Pagamento não confirmado'
     });
   } catch (error) {
     console.error('Error checking payment status:', error);
@@ -577,7 +601,7 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
       items: [
         {
           code: diet.id || 'diet-plan', // Use diet.id or fallback
-          amount: 990, // R$ 9,90 in cents
+          amount: 100, // R$ 9,90 in cents
           description: 'Dieta Personalizada',
           quantity: 1,
           metadata: {
@@ -586,7 +610,7 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
           }
         }
       ],
-      totalAmount: 990
+      totalAmount: 100
     };
 
     const membrosOrder = await membrosApiService.createOrder(orderData);
