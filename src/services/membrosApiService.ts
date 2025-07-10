@@ -278,9 +278,13 @@ export class MembrosApiService {
   async getOrder(orderId: string): Promise<CreateOrderResponse> {
     const url = `${this.config.baseUrl}/v2/orders/${orderId}`;
     
+    console.log('Fetching order status from Membros API:', url);
+    
     const authHeader = this.config.publicKey && this.config.secretKey 
       ? `Bearer ${this.config.publicKey}:${this.config.secretKey}`
       : 'Bearer pk_e3a1d0829ee9f4dedf65524e24baa2986a66d93373af659fbd8f3151d4f5fcab:sk_d89aaf17040cb02feaa5d18e7415bfce133347e7c6b5a5e42890597f2212dd29';
+    
+    console.log('Using auth header:', authHeader.substring(0, 20) + '...');
     
     const response = await fetch(url, {
       method: 'GET',
@@ -290,11 +294,17 @@ export class MembrosApiService {
       }
     });
 
+    console.log('Membros API response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('Membros API error response:', errorData);
       throw new Error(`Membros API error: ${response.status} - ${errorData.message || 'API key required. Please provide Authorization header with \'Bearer <public_key>:<private_key>\''}`);
     }
 
-    return await response.json();
+    const responseData = await response.json();
+    console.log('Membros API response data:', responseData);
+
+    return responseData;
   }
 }

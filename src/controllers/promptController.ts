@@ -320,8 +320,27 @@ export const checkPaymentStatus = async (
       });
     }
 
+    // IMPORTANT: Only return paid: true if both order and transaction status are "paid"
+    // For PIX payments, we need to check both the order status and the transaction status
+    const isOrderPaid = orderStatus.status === 'paid';
+    const isTransactionPaid = orderStatus.last_transaction?.status === 'paid';
+    
+    if (!isOrderPaid || !isTransactionPaid) {
+      const effectiveStatus = !isOrderPaid ? orderStatus.status : orderStatus.last_transaction?.status;
+      return reply.send({
+        success: true,
+        paid: false,
+        status: effectiveStatus,
+        message: effectiveStatus === 'pending' ? 'Aguardando confirmação do pagamento PIX' : 
+                effectiveStatus === 'waiting_payment' ? 'Aguardando confirmação do pagamento PIX' :
+                effectiveStatus === 'failed' ? 'Pagamento falhou. Tente novamente.' :
+                effectiveStatus === 'canceled' ? 'Pagamento cancelado.' :
+                'Pagamento ainda não confirmado. Tente novamente em alguns minutos.'
+      });
+    }
+
     // If payment is confirmed and diet is ready, return the diet
-    if (orderStatus.status === 'paid' && diet.aiResponse) {
+    if (isOrderPaid && isTransactionPaid && diet.aiResponse) {
       return reply.send({
         success: true,
         paid: true,
@@ -336,7 +355,7 @@ export const checkPaymentStatus = async (
     }
 
     // If payment is confirmed but diet is not ready yet, generate it now
-    if (orderStatus.status === 'paid' && !diet.aiResponse) {
+    if (isOrderPaid && isTransactionPaid && !diet.aiResponse) {
       try {
         console.log('🤖 Generating AI diet response for manual payment verification');
         const aiResponse = await OpenAIService.generateNutritionPlan(diet.prompt);
@@ -367,13 +386,6 @@ export const checkPaymentStatus = async (
       }
     }
 
-    // Payment not confirmed yet - return quickly without generating diet
-    return reply.send({
-      success: true,
-      paid: false,
-      status: orderStatus.status,
-      message: orderStatus.status === 'pending' ? 'Aguardando pagamento via PIX' : 'Pagamento não confirmado'
-    });
   } catch (error) {
     console.error('Error checking payment status:', error);
     return reply.status(500).send({

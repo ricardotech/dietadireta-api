@@ -106,7 +106,30 @@ export const getGeneratedPromptResponseSchema = z.object({
 });
 
 export const createCheckoutSchema = z.object({
-  dietId: z.string().uuid('DietId must be a valid UUID'),
+  dietId: z.string().uuid('DietId must be a valid UUID').optional(),
+  userInfo: z.object({
+    email: z.string().email(),
+    phoneNumber: z.string(),
+    cpf: z.string(),
+  }).optional(),
+  userData: z.object({
+    weight: z.string(),
+    height: z.string(),
+    age: z.string(),
+    goal: z.string(),
+    calories: z.string(),
+    gender: z.string(),
+    schedule: z.string(),
+    activityLevel: z.string(),
+    workoutPlan: z.string(),
+    breakfast: z.string(),
+    morningSnack: z.string(),
+    lunch: z.string(),
+    afternoonSnack: z.string(),
+    dinner: z.string(),
+  }).optional(),
+}).refine(data => data.dietId || (data.userInfo && data.userData), {
+  message: "Either dietId or both userInfo and userData must be provided"
 });
 
 export const createCheckoutResponseSchema = z.object({
