@@ -1,7 +1,7 @@
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { generatePrompt, getDiet, checkPaymentStatus, createCheckout } from '../controllers/promptController';
+import { generatePrompt, getDiet, checkPaymentStatus, createCheckout, regenerateDiet, getUserPaidDiet } from '../controllers/promptController';
 import { authenticateBearer } from '../utils/auth';
 import { Objetivo, HorariosRefeicoesOption, Genero, NivelAtividade, TipoPlanoTreino } from '../types/enums';
 
@@ -266,5 +266,35 @@ export const promptRoutes = async (fastify: FastifyInstance) => {
       // },
     },
     handler: createCheckout,
+  });
+
+  // Regenerate diet endpoint
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: 'POST',
+    url: '/regenerate-diet',
+    preHandler: authenticateBearer,
+    schema: {
+      description: 'Regenerate diet based on user feedback',
+      tags: ['Nutrition'],
+      security: [{ bearerAuth: [] }],
+      body: z.object({
+        dietId: z.string().uuid('DietId must be a valid UUID'),
+        feedback: z.string().min(10, 'Feedback must be at least 10 characters'),
+      }),
+    },
+    handler: regenerateDiet,
+  });
+
+  // Get user's paid diet endpoint
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: 'GET',
+    url: '/user-paid-diet',
+    preHandler: authenticateBearer,
+    schema: {
+      description: 'Get user\'s most recent paid diet',
+      tags: ['Nutrition'],
+      security: [{ bearerAuth: [] }],
+    },
+    handler: getUserPaidDiet,
   });
 };

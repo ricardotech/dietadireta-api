@@ -125,6 +125,10 @@ export const generatePrompt = async (
     // Save updated user data
     await userDataRepository.save(userData);
 
+    // Check which meals are activated based on user preferences
+    const includeLancheManha = userData.lancheDaManha && userData.lancheDaManha.length > 0 && userData.lancheDaManha[0].trim() !== '';
+    const includeLancheTarde = userData.lancheDaTarde && userData.lancheDaTarde.length > 0 && userData.lancheDaTarde[0].trim() !== '';
+
     // Create the prompt for OpenAI (but don't send it yet)
     const nutritionPrompt = `
 Crie um plano alimentar personalizado baseado nos dados fornecidos:
@@ -136,20 +140,29 @@ DADOS DO USUÁRIO:
 - Nível de atividade: ${userData.nivelAtividade}
 - Tipo de treino: ${userData.planoTreino}
 
+REFEIÇÕES ATIVAS:
+- Café da manhã: ATIVO
+- Lanche manhã: ${includeLancheManha ? 'ATIVO' : 'INATIVO'}
+- Almoço: ATIVO
+- Lanche tarde: ${includeLancheTarde ? 'ATIVO' : 'INATIVO'}
+- Jantar: ATIVO
+
 PREFERÊNCIAS ALIMENTARES:
 - Café da manhã: ${userData.cafeDaManha.join(', ')}
-- Lanche manhã: ${userData.lancheDaManha.join(', ')}
+${includeLancheManha ? `- Lanche manhã: ${userData.lancheDaManha.join(', ')}` : ''}
 - Almoço: ${userData.almoco.join(', ')}
-- Lanche tarde: ${userData.lancheDaTarde.join(', ')}
+${includeLancheTarde ? `- Lanche tarde: ${userData.lancheDaTarde.join(', ')}` : ''}
 - Jantar: ${userData.janta.join(', ')}
 
 INSTRUÇÕES:
-1. Crie exatamente 3 opções de alimentos para cada refeição
-2. Use as preferências alimentares fornecidas como base
-3. Distribua ${userData.caloriasDiarias} calorias ao longo do dia conforme o objetivo "${userData.objetivo}"
-4. Forneça quantidades específicas (ex: "150g", "1 xícara", "2 colheres")
-5. Calcule calorias realistas para cada alimento
-6. Inclua dicas nutricionais nas notas
+1. Para cada refeição ATIVA, crie um plano "main" com 3 alimentos e um plano "alternatives" com 3 substitutos
+2. Para refeições INATIVAS (lanche manhã/tarde), retorne null
+3. Use as preferências alimentares fornecidas como base
+4. Distribua ${userData.caloriasDiarias} calorias ao longo do dia conforme o objetivo "${userData.objetivo}"
+5. Forneça quantidades específicas (ex: "150g", "1 xícara", "2 colheres")
+6. Calcule calorias realistas para cada alimento
+7. As alternativas devem ter valor calórico similar aos principais
+8. Inclua dicas nutricionais nas notas
 
 Retorne apenas um JSON válido com a estrutura solicitada.
     `.trim();
@@ -285,15 +298,26 @@ export const checkPaymentStatus = async (
     }
 
     // Check payment status with Membros API only if not already confirmed
-    const membrosApiService = new MembrosApiService();
-    const orderStatus = await membrosApiService.getOrder(orderId);
-
-    console.log('Order status from Membros API:', orderStatus);
-
-    // Update local status only if it changed
-    if (diet.membrosOrderStatus !== orderStatus.status) {
-      diet.membrosOrderStatus = orderStatus.status;
-      await dietRepository.save(diet);
+    let orderStatus;
+    try {
+      const membrosApiService = new MembrosApiService();
+      orderStatus = await membrosApiService.getOrder(orderId);
+      console.log('Order status from Membros API:', orderStatus);
+      
+      // Update local status only if it changed and is a valid payment status
+      if (orderStatus.status && ['pending', 'paid', 'failed', 'canceled'].includes(orderStatus.status) && diet.membrosOrderStatus !== orderStatus.status) {
+        diet.membrosOrderStatus = orderStatus.status;
+        await dietRepository.save(diet);
+      }
+    } catch (error) {
+      console.error('Error checking payment status with Membros API:', error);
+      // If API fails, don't assume payment is confirmed - return current local status
+      return reply.send({
+        success: true,
+        paid: false,
+        status: diet.membrosOrderStatus || 'pending',
+        message: 'Não foi possível verificar o status do pagamento. Tente novamente em alguns minutos.'
+      });
     }
 
     // If payment is confirmed and diet is ready, return the diet
@@ -439,6 +463,10 @@ export const createCheckout = async (
 
       await userDataRepository.save(userRecord);
 
+      // Check which meals are activated based on user preferences
+      const includeLancheManha = userRecord.lancheDaManha && userRecord.lancheDaManha.length > 0 && userRecord.lancheDaManha[0].trim() !== '';
+      const includeLancheTarde = userRecord.lancheDaTarde && userRecord.lancheDaTarde.length > 0 && userRecord.lancheDaTarde[0].trim() !== '';
+
       // Create the diet prompt
       const nutritionPrompt = `
 Você é um nutricionista especializado em criar planos alimentares personalizados. Com base nos dados fornecidos, crie um plano nutricional detalhado.
@@ -454,24 +482,33 @@ DADOS DO USUÁRIO:
 - Tipo de treino: ${userRecord.planoTreino}
 - Horários das refeições: ${userRecord.horariosParaRefeicoes}
 
+REFEIÇÕES ATIVAS:
+- Café da manhã: ATIVO
+- Lanche manhã: ${includeLancheManha ? 'ATIVO' : 'INATIVO'}
+- Almoço: ATIVO
+- Lanche tarde: ${includeLancheTarde ? 'ATIVO' : 'INATIVO'}
+- Jantar: ATIVO
+
 PREFERÊNCIAS ALIMENTARES:
 - Café da manhã: ${userRecord.cafeDaManha.join(', ')}
-- Lanche da manhã: ${userRecord.lancheDaManha.join(', ')}
+${includeLancheManha ? `- Lanche da manhã: ${userRecord.lancheDaManha.join(', ')}` : ''}
 - Almoço: ${userRecord.almoco.join(', ')}
-- Lanche da tarde: ${userRecord.lancheDaTarde.join(', ')}
+${includeLancheTarde ? `- Lanche da tarde: ${userRecord.lancheDaTarde.join(', ')}` : ''}
 - Jantar: ${userRecord.janta.join(', ')}
 
 INSTRUÇÕES:
-1. Crie um plano alimentar completo para uma semana
-2. Distribua as calorias adequadamente entre as refeições
-3. Considere o objetivo (ganhar peso, perder peso, manter peso)
-4. Inclua as preferências alimentares mencionadas
-5. Ajuste as porções conforme o nível de atividade física
-6. Forneça dicas nutricionais específicas para o objetivo
-7. Inclua informações sobre hidratação
-8. Sugira suplementação se necessário
+1. Para cada refeição ATIVA, crie um plano "main" com 3 alimentos e um plano "alternatives" com 3 substitutos
+2. Para refeições INATIVAS (lanche manhã/tarde), retorne null
+3. Distribua as calorias adequadamente entre as refeições ativas
+4. Considere o objetivo (ganhar peso, perder peso, manter peso)
+5. Inclua as preferências alimentares mencionadas
+6. Ajuste as porções conforme o nível de atividade física
+7. Forneça quantidades específicas (ex: "150g", "1 xícara", "2 colheres")
+8. Calcule calorias realistas para cada alimento
+9. As alternativas devem ter valor calórico similar aos principais
+10. Inclua dicas nutricionais nas notas
 
-Por favor, forneça o plano alimentar estruturado e detalhado.
+Retorne apenas um JSON válido com a estrutura solicitada.
       `.trim();
 
       // Create new Diet record
@@ -643,6 +680,147 @@ Por favor, forneça o plano alimentar estruturado e detalhado.
     return reply.status(500).send({
       success: false,
       error: 'Internal server error'
+    });
+  }
+};
+
+export const regenerateDiet = async (
+  request: FastifyRequest<{ Body: { dietId: string; feedback: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { dietId, feedback } = request.body;
+    const userId = request.user.userId;
+
+    if (!dietId || !feedback) {
+      return reply.status(400).send({
+        success: false,
+        error: 'dietId and feedback are required'
+      });
+    }
+
+    // Find the original diet
+    const dietRepository = AppDataSource.getRepository(Diet);
+    const originalDiet = await dietRepository.findOne({
+      where: { id: dietId, userId }
+    });
+
+    if (!originalDiet) {
+      return reply.status(404).send({
+        success: false,
+        error: 'Diet not found or not authorized'
+      });
+    }
+
+    // Check if regeneration limit has been reached
+    if (originalDiet.regenerationCount >= 1) {
+      return reply.status(400).send({
+        success: false,
+        error: 'You have reached the maximum number of regenerations (1) for this diet.'
+      });
+    }
+
+    // Check if user has a paid diet
+    if (originalDiet.membrosOrderStatus !== 'paid') {
+      return reply.status(400).send({
+        success: false,
+        error: 'Diet regeneration is only available for paid diets'
+      });
+    }
+
+    // Create an enhanced prompt with feedback
+    const enhancedPrompt = `${originalDiet.prompt}
+
+FEEDBACK DO USUÁRIO PARA MELHORIA:
+${feedback}
+
+IMPORTANTE: Considere o feedback acima e ajuste a dieta conforme solicitado, mantendo o mesmo número de calorias e estrutura, mas alterando os alimentos conforme a preferência do usuário.`;
+
+    // Generate new AI response
+    const newAiResponse = await OpenAIService.generateNutritionPlan(enhancedPrompt);
+
+    // Create new diet record
+    const newDiet = dietRepository.create({
+      userId: originalDiet.userId,
+      prompt: enhancedPrompt,
+      aiResponse: newAiResponse,
+      orderStatus: OrderStatus.COMPLETED,
+      membrosOrderId: originalDiet.membrosOrderId,
+      membrosOrderStatus: 'paid',
+      userData: originalDiet.userData,
+      isRegenerated: true,
+      regenerationFeedback: feedback,
+      originalDietId: originalDiet.id,
+      regenerationCount: 0
+    });
+
+    await dietRepository.save(newDiet);
+
+    // Increment regeneration count on original diet
+    originalDiet.regenerationCount += 1;
+    originalDiet.isRegenerated = true;
+    await dietRepository.save(originalDiet);
+
+    return reply.send({
+      success: true,
+      data: {
+        dietId: newDiet.id,
+        aiResponse: newDiet.aiResponse,
+        message: 'Nova dieta gerada com sucesso baseada no seu feedback!',
+        regenerationCount: originalDiet.regenerationCount
+      }
+    });
+  } catch (error) {
+    console.error('Error regenerating diet:', error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to regenerate diet'
+    });
+  }
+};
+
+export const getUserPaidDiet = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const userId = request.user.userId;
+
+    // Find the most recent paid diet for this user
+    const dietRepository = AppDataSource.getRepository(Diet);
+    const paidDiet = await dietRepository.findOne({
+      where: { 
+        userId, 
+        membrosOrderStatus: 'paid'
+      },
+      order: { createdAt: 'DESC' }
+    });
+
+    if (!paidDiet) {
+      return reply.send({
+        success: true,
+        hasPaidDiet: false,
+        message: 'No paid diet found for this user'
+      });
+    }
+
+    return reply.send({
+      success: true,
+      hasPaidDiet: true,
+      data: {
+        dietId: paidDiet.id,
+        aiResponse: paidDiet.aiResponse,
+        createdAt: paidDiet.createdAt,
+        isRegenerated: paidDiet.isRegenerated,
+        originalDietId: paidDiet.originalDietId,
+        regenerationCount: paidDiet.regenerationCount || 0
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user paid diet:', error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to fetch user diet'
     });
   }
 };

@@ -26,41 +26,78 @@ export class OpenAIService {
               Responda **apenas** com um objeto JSON que siga exatamente este schema:
 
               {
-                "breakfast": [
-                  {"name": "string", "quantity": "string", "calories": number},
-                  {"name": "string", "quantity": "string", "calories": number},
-                  {"name": "string", "quantity": "string", "calories": number}
-                ],
-                "morningSnack": [
-                  {"name": "string", "quantity": "string", "calories": number},
-                  {"name": "string", "quantity": "string", "calories": number},
-                  {"name": "string", "quantity": "string", "calories": number}
-                ],
-                "lunch": [
-                  {"name": "string", "quantity": "string", "calories": number},
-                  {"name": "string", "quantity": "string", "calories": number},
-                  {"name": "string", "quantity": "string", "calories": number}
-                ],
-                "afternoonSnack": [
-                  {"name": "string", "quantity": "string", "calories": number},
-                  {"name": "string", "quantity": "string", "calories": number},
-                  {"name": "string", "quantity": "string", "calories": number}
-                ],
-                "dinner": [
-                  {"name": "string", "quantity": "string", "calories": number},
-                  {"name": "string", "quantity": "string", "calories": number},
-                  {"name": "string", "quantity": "string", "calories": number}
-                ],
+                "breakfast": {
+                  "main": [
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number}
+                  ],
+                  "alternatives": [
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number}
+                  ]
+                },
+                "morningSnack": null OR {
+                  "main": [
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number}
+                  ],
+                  "alternatives": [
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number}
+                  ]
+                },
+                "lunch": {
+                  "main": [
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number}
+                  ],
+                  "alternatives": [
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number}
+                  ]
+                },
+                "afternoonSnack": null OR {
+                  "main": [
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number}
+                  ],
+                  "alternatives": [
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number}
+                  ]
+                },
+                "dinner": {
+                  "main": [
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number}
+                  ],
+                  "alternatives": [
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number},
+                    {"name": "string", "quantity": "string", "calories": number}
+                  ]
+                },
                 "totalCalories": number,
                 "notes": "string com dicas nutricionais personalizadas"
               }
 
               IMPORTANTE:
-              - Cada refeição deve ter EXATAMENTE 3 itens
+              - Para cada refeição ativa: forneça um plano "main" com 3 itens e um plano "alternatives" com 3 itens substitutos
+              - Se morningSnack ou afternoonSnack não foram ativados pelo usuário, retorne null para esses campos
               - Base-se nas preferências alimentares fornecidas
               - Distribua as calorias conforme o objetivo do usuário
               - Forneça quantidades específicas (ex: "150g", "1 xícara", "2 colheres")
               - Calcule calorias realistas para cada item
+              - As alternativas devem ter valor calórico similar aos itens principais
               - Responda sempre em português brasileiro`
             },
             {
@@ -80,8 +117,8 @@ export class OpenAIService {
         // Validate that the response is valid JSON with required structure
         try {
           const parsed = JSON.parse(response);
-          if (!parsed.breakfast || !parsed.lunch || !parsed.dinner) {
-            throw new Error('Invalid JSON structure - missing required meal arrays');
+          if (!parsed.breakfast?.main || !parsed.lunch?.main || !parsed.dinner?.main) {
+            throw new Error('Invalid JSON structure - missing required meal main arrays');
           }
           console.log('✅ Valid JSON response generated on attempt', attempt + 1);
           return response;

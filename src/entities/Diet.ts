@@ -41,6 +41,18 @@ export class Diet {
   @Column({ type: 'jsonb', nullable: true })
   userData: any;
 
+  @Column({ default: false })
+  isRegenerated: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  regenerationFeedback: string;
+
+  @Column({ type: 'int', default: 0 })
+  regenerationCount: number;
+
+  @Column({ nullable: true })
+  originalDietId: string;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
