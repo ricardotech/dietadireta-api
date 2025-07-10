@@ -127,37 +127,31 @@ export const generatePrompt = async (
 
     // Create the prompt for OpenAI (but don't send it yet)
     const nutritionPrompt = `
-Você é um nutricionista especializado em criar planos alimentares personalizados. Com base nos dados fornecidos, crie um plano nutricional detalhado.
+Crie um plano alimentar personalizado baseado nos dados fornecidos:
 
 DADOS DO USUÁRIO:
-- Peso: ${userData.peso}kg
-- Altura: ${userData.altura}cm
-- Idade: ${userData.idade} anos
-- Gênero: ${userData.genero}
-- Objetivo: ${userData.objetivo}
-- Meta de calorias: ${userData.caloriasDiarias} kcal/dia
+- Peso: ${userData.peso}kg, Altura: ${userData.altura}cm, Idade: ${userData.idade} anos
+- Gênero: ${userData.genero}, Objetivo: ${userData.objetivo}
+- Meta calórica: ${userData.caloriasDiarias} kcal/dia
 - Nível de atividade: ${userData.nivelAtividade}
 - Tipo de treino: ${userData.planoTreino}
-- Horários das refeições: ${userData.horariosParaRefeicoes}
 
 PREFERÊNCIAS ALIMENTARES:
 - Café da manhã: ${userData.cafeDaManha.join(', ')}
-- Lanche da manhã: ${userData.lancheDaManha.join(', ')}
+- Lanche manhã: ${userData.lancheDaManha.join(', ')}
 - Almoço: ${userData.almoco.join(', ')}
-- Lanche da tarde: ${userData.lancheDaTarde.join(', ')}
+- Lanche tarde: ${userData.lancheDaTarde.join(', ')}
 - Jantar: ${userData.janta.join(', ')}
 
 INSTRUÇÕES:
-1. Crie um plano alimentar completo para uma semana
-2. Distribua as calorias adequadamente entre as refeições
-3. Considere o objetivo (ganhar peso, perder peso, manter peso)
-4. Inclua as preferências alimentares mencionadas
-5. Ajuste as porções conforme o nível de atividade física
-6. Forneça dicas nutricionais específicas para o objetivo
-7. Inclua informações sobre hidratação
-8. Sugira suplementação se necessário
+1. Crie exatamente 3 opções de alimentos para cada refeição
+2. Use as preferências alimentares fornecidas como base
+3. Distribua ${userData.caloriasDiarias} calorias ao longo do dia conforme o objetivo "${userData.objetivo}"
+4. Forneça quantidades específicas (ex: "150g", "1 xícara", "2 colheres")
+5. Calcule calorias realistas para cada alimento
+6. Inclua dicas nutricionais nas notas
 
-Por favor, forneça o plano alimentar estruturado e detalhado.
+Retorne apenas um JSON válido com a estrutura solicitada.
     `.trim();
 
     // Create Diet record without AI response (will be generated after payment)
