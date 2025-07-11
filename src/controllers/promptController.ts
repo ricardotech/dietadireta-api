@@ -641,7 +641,7 @@ Retorne apenas um JSON válido com a estrutura solicitada.
       items: [
         {
           code: diet.id || 'diet-plan', // Use diet.id or fallback
-          amount: 100, // R$ 9,90 in cents
+          amount: 1990, // R$ 9,90 in cents
           description: 'Dieta Personalizada',
           quantity: 1,
           metadata: {
@@ -650,7 +650,7 @@ Retorne apenas um JSON válido com a estrutura solicitada.
           }
         }
       ],
-      totalAmount: 100
+      totalAmount: 1990
     };
 
     const membrosOrder = await membrosApiService.createOrder(orderData);
