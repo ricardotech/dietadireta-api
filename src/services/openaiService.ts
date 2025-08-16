@@ -21,7 +21,9 @@ export class OpenAIService {
           messages: [
             {
               role: "system",
-              content: `Você é um nutricionista especialista e experiente. 
+              content: `Você é um nutricionista especialista e experiente, especializado em culinária brasileira. 
+              
+              IMPORTANTE: Use EXCLUSIVAMENTE alimentos típicos brasileiros em todas as refeições.
               
               Responda **apenas** com um objeto JSON que siga exatamente este schema:
 

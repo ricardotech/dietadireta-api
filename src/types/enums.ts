@@ -47,6 +47,39 @@ export enum TipoPlanoTreino {
   NENHUM = 'nenhum',
 }
 
+export enum FrequenciaTreino {
+  BAIXA = '1-3',
+  MEDIA = '3-5',
+  ALTA = '5-7'
+}
+
+export enum CondicoesSaude {
+  DIABETES = 'diabetes',
+  HIPERTENSAO = 'hipertensao',
+  COLESTEROL_ALTO = 'colesterol_alto',
+  INTOLERANCIA_LACTOSE = 'intolerancia_lactose',
+  DOENCA_CELIACA = 'doenca_celiaca',
+  SINDROME_INTESTINO_IRRITAVEL = 'sindrome_intestino_irritavel',
+  GASTRITE = 'gastrite',
+  REFLUXO = 'refluxo'
+}
+
+export enum RestricoesAlimentares {
+  VEGETARIANO = 'vegetariano',
+  VEGANO = 'vegano',
+  SEM_GLUTEN = 'sem_gluten',
+  SEM_LACTOSE = 'sem_lactose',
+  LOW_CARB = 'low_carb',
+  KOSHER = 'kosher',
+  HALAL = 'halal'
+}
+
+export enum DietMode {
+  COMPLETE = 'complete',
+  CALORIES_ONLY = 'calories_only',
+  QUICK = 'quick'
+}
+
 export enum OrderStatus {
   PENDING = 'pending',
   PROCESSING = 'processing',

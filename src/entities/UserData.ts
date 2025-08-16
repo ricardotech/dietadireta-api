@@ -64,6 +64,43 @@ export class UserData {
   @Column({ type: 'enum', enum: TipoPlanoTreino })
   planoTreino: TipoPlanoTreino;
 
+  @Column({ 
+    name: 'frequencia_treino',
+    type: 'varchar', 
+    length: 10, 
+    default: '3-5',
+    nullable: false 
+  })
+  frequenciaTreino: '1-3' | '3-5' | '5-7';
+
+  // Health conditions
+  @Column({ name: 'condicoes_saude', type: 'text', array: true, default: [] })
+  condicoesSaude: string[];
+  
+  @Column({ name: 'alergias_alimentares', type: 'text', array: true, default: [] })
+  alergiasAlimentares: string[];
+  
+  @Column({ name: 'restricoes_alimentares', type: 'text', array: true, default: [] })
+  restricoesAlimentares: string[];
+  
+  @Column({ name: 'observacoes_medicas', type: 'text', nullable: true })
+  observacoesMedicas?: string;
+
+  // Diet mode
+  @Column({ 
+    name: 'diet_mode',
+    type: 'varchar', 
+    length: 20, 
+    default: 'complete' 
+  })
+  dietMode: 'complete' | 'calories_only' | 'quick';
+  
+  @Column({ name: 'custom_calories', type: 'int', nullable: true })
+  customCalories?: number;
+  
+  @Column({ name: 'skip_measurements', type: 'boolean', default: false })
+  skipMeasurements: boolean;
+
   // Meal preferences (storing as text arrays)
   @Column({ type: 'text', array: true, default: [] })
   cafeDaManha: string[];

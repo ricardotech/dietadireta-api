@@ -139,6 +139,16 @@ DADOS DO USUÁRIO:
 - Meta calórica: ${userData.caloriasDiarias} kcal/dia
 - Nível de atividade: ${userData.nivelAtividade}
 - Tipo de treino: ${userData.planoTreino}
+- Frequência de treino: ${userData.frequenciaTreino} dias por semana
+${userData.condicoesSaude?.length > 0 ? `
+CONDIÇÕES DE SAÚDE:
+- ${userData.condicoesSaude.join(', ')}` : ''}
+${userData.restricoesAlimentares?.length > 0 ? `
+RESTRIÇÕES ALIMENTARES:
+- ${userData.restricoesAlimentares.join(', ')}` : ''}
+${userData.alergiasAlimentares ? `
+ALERGIAS:
+- ${userData.alergiasAlimentares}` : ''}
 
 REFEIÇÕES ATIVAS:
 - Café da manhã: ATIVO
@@ -155,14 +165,25 @@ ${includeLancheTarde ? `- Lanche tarde: ${userData.lancheDaTarde.join(', ')}` : 
 - Jantar: ${userData.janta.join(', ')}
 
 INSTRUÇÕES:
-1. Para cada refeição ATIVA, crie um plano "main" com 3 alimentos e um plano "alternatives" com 3 substitutos
-2. Para refeições INATIVAS (lanche manhã/tarde), retorne null
-3. Use as preferências alimentares fornecidas como base
-4. Distribua ${userData.caloriasDiarias} calorias ao longo do dia conforme o objetivo "${userData.objetivo}"
-5. Forneça quantidades específicas (ex: "150g", "1 xícara", "2 colheres")
-6. Calcule calorias realistas para cada alimento
-7. As alternativas devem ter valor calórico similar aos principais
-8. Inclua dicas nutricionais nas notas
+1. Use EXCLUSIVAMENTE alimentos típicos brasileiros (arroz, feijão, tapioca, pão de queijo, frutas tropicais, etc.)
+2. Para cada refeição ATIVA, crie um plano "main" com 3 alimentos e um plano "alternatives" com 3 substitutos
+3. Para refeições INATIVAS (lanche manhã/tarde), retorne null
+4. Use as preferências alimentares fornecidas como base
+5. Distribua ${userData.caloriasDiarias} calorias ao longo do dia conforme o objetivo "${userData.objetivo}"
+6. Ajuste as porções considerando a frequência de treino:
+   - 1-3 dias/semana: Foco em manutenção calórica
+   - 3-5 dias/semana: Balanço entre energia e recuperação  
+   - 5-7 dias/semana: Maior aporte de carboidratos e proteínas
+7. IMPORTANTE - Adapte a dieta para condições de saúde:
+   - Diabetes: Priorize alimentos de baixo índice glicêmico
+   - Hipertensão: Reduza sódio, evite alimentos processados
+   - Colesterol alto: Limite gorduras saturadas
+   - Intolerâncias/alergias: Elimine completamente os alimentos específicos
+   - Restrições alimentares: Respeite rigorosamente (vegetariano, vegano, sem glúten, etc.)
+8. Forneça quantidades específicas (ex: "150g", "1 xícara", "2 colheres")
+9. Calcule calorias realistas para cada alimento
+10. As alternativas devem ter valor calórico similar aos principais
+11. Inclua dicas nutricionais personalizadas nas notas
 
 Retorne apenas um JSON válido com a estrutura solicitada.
     `.trim();
@@ -489,7 +510,14 @@ DADOS DO USUÁRIO:
 - Meta de calorias: ${userRecord.caloriasDiarias} kcal/dia
 - Nível de atividade: ${userRecord.nivelAtividade}
 - Tipo de treino: ${userRecord.planoTreino}
+- Frequência de treino: ${userRecord.frequenciaTreino} dias por semana
 - Horários das refeições: ${userRecord.horariosParaRefeicoes}
+${userRecord.condicoesSaude?.length > 0 ? `
+- Condições de saúde: ${userRecord.condicoesSaude.join(', ')}` : ''}
+${userRecord.restricoesAlimentares?.length > 0 ? `
+- Restrições alimentares: ${userRecord.restricoesAlimentares.join(', ')}` : ''}
+${userRecord.alergiasAlimentares ? `
+- Alergias: ${userRecord.alergiasAlimentares}` : ''}
 
 REFEIÇÕES ATIVAS:
 - Café da manhã: ATIVO
@@ -506,16 +534,24 @@ ${includeLancheTarde ? `- Lanche da tarde: ${userRecord.lancheDaTarde.join(', ')
 - Jantar: ${userRecord.janta.join(', ')}
 
 INSTRUÇÕES:
-1. Para cada refeição ATIVA, crie um plano "main" com 3 alimentos e um plano "alternatives" com 3 substitutos
-2. Para refeições INATIVAS (lanche manhã/tarde), retorne null
-3. Distribua as calorias adequadamente entre as refeições ativas
-4. Considere o objetivo (ganhar peso, perder peso, manter peso)
-5. Inclua as preferências alimentares mencionadas
-6. Ajuste as porções conforme o nível de atividade física
-7. Forneça quantidades específicas (ex: "150g", "1 xícara", "2 colheres")
-8. Calcule calorias realistas para cada alimento
-9. As alternativas devem ter valor calórico similar aos principais
-10. Inclua dicas nutricionais nas notas
+1. Use EXCLUSIVAMENTE alimentos típicos brasileiros (arroz, feijão, tapioca, pão de queijo, frutas tropicais, etc.)
+2. Para cada refeição ATIVA, crie um plano "main" com 3 alimentos e um plano "alternatives" com 3 substitutos
+3. Para refeições INATIVAS (lanche manhã/tarde), retorne null
+4. Distribua as calorias adequadamente entre as refeições ativas
+5. Considere o objetivo (ganhar peso, perder peso, manter peso)
+6. Inclua as preferências alimentares mencionadas
+7. Ajuste as porções conforme:
+   - Nível de atividade física
+   - Frequência de treino (1-3: manutenção, 3-5: balanço, 5-7: maior aporte)
+8. Adapte para condições de saúde se houver:
+   - Diabetes: baixo índice glicêmico
+   - Hipertensão: reduzir sódio
+   - Colesterol: limitar gorduras saturadas
+   - Respeite todas as restrições e alergias alimentares
+9. Forneça quantidades específicas (ex: "150g", "1 xícara", "2 colheres")
+10. Calcule calorias realistas para cada alimento
+11. As alternativas devem ter valor calórico similar aos principais
+12. Inclua dicas nutricionais nas notas
 
 Retorne apenas um JSON válido com a estrutura solicitada.
       `.trim();

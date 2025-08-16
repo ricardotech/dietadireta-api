@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddDietRegenerationFields implements MigrationInterface {
-    name = 'AddDietRegenerationFields'
+export class AddDietRegenerationFields1751700200000 implements MigrationInterface {
+    name = 'AddDietRegenerationFields1751700200000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "diets" ADD "isRegenerated" boolean NOT NULL DEFAULT false`);
