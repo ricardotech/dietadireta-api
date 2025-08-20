@@ -29,8 +29,10 @@ export enum HorariosRefeicoesOption {
 }
 
 export enum Genero {
-  MASCULINO = 'm',
-  FEMININO = 'f',
+  MASCULINO = 'masculino',
+  FEMININO = 'feminino',
+  OUTRO = 'outro',
+  PREFIRO_NAO_DIZER = 'prefiro_nao_dizer',
 }
 
 export enum NivelAtividade {
