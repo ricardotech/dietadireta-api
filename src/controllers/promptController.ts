@@ -85,7 +85,9 @@ export const generatePrompt = async (
       morningSnack,
       lunch,
       afternoonSnack,
-      dinner
+      dinner,
+      usesSupplements,
+      supplements
     } = validation.data;
 
     // Get user ID from JWT token (set by authentication middleware)
@@ -121,6 +123,8 @@ export const generatePrompt = async (
     userData.almoco = lunch.split(',').map((item: string) => item.trim());
     userData.lancheDaTarde = afternoonSnack.split(',').map((item: string) => item.trim());
     userData.janta = dinner.split(',').map((item: string) => item.trim());
+    userData.usesSupplements = usesSupplements || false;
+    userData.supplements = supplements ? supplements.split(',').map((item: string) => item.trim()) : [];
 
     // Save updated user data
     await userDataRepository.save(userData);
@@ -163,6 +167,12 @@ ${includeLancheManha ? `- Lanche manhã: ${userData.lancheDaManha.join(', ')}` :
 - Almoço: ${userData.almoco.join(', ')}
 ${includeLancheTarde ? `- Lanche tarde: ${userData.lancheDaTarde.join(', ')}` : ''}
 - Jantar: ${userData.janta.join(', ')}
+${userData.usesSupplements && userData.supplements?.length > 0 ? `
+SUPLEMENTAÇÃO UTILIZADA:
+- Suplementos: ${userData.supplements.join(', ')}
+- Ajustar a dieta considerando o uso destes suplementos
+- Se usa whey protein, considerar no cálculo proteico
+- Se usa hipercalórico, ajustar calorias das refeições` : ''}
 
 INSTRUÇÕES:
 1. Use EXCLUSIVAMENTE alimentos típicos brasileiros (arroz, feijão, tapioca, pão de queijo, frutas tropicais, etc.)
@@ -532,6 +542,12 @@ ${includeLancheManha ? `- Lanche da manhã: ${userRecord.lancheDaManha.join(', '
 - Almoço: ${userRecord.almoco.join(', ')}
 ${includeLancheTarde ? `- Lanche da tarde: ${userRecord.lancheDaTarde.join(', ')}` : ''}
 - Jantar: ${userRecord.janta.join(', ')}
+${userRecord.usesSupplements && userRecord.supplements?.length > 0 ? `
+SUPLEMENTAÇÃO UTILIZADA:
+- Suplementos: ${userRecord.supplements.join(', ')}
+- Ajustar a dieta considerando o uso destes suplementos
+- Se usa whey protein, considerar no cálculo proteico
+- Se usa hipercalórico, ajustar calorias das refeições` : ''}
 
 INSTRUÇÕES:
 1. Use EXCLUSIVAMENTE alimentos típicos brasileiros (arroz, feijão, tapioca, pão de queijo, frutas tropicais, etc.)

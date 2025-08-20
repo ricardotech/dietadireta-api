@@ -82,6 +82,8 @@ export const generatePromptSchema = z.object({
   lunch: z.string().min(1, 'Lunch preferences are required'),
   afternoonSnack: z.string().min(1, 'Afternoon snack preferences are required'),
   dinner: z.string().min(1, 'Dinner preferences are required'),
+  usesSupplements: z.boolean().optional().default(false),
+  supplements: z.string().optional().default(''),
 });
 
 export const generatePromptResponseSchema = z.object({

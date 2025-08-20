@@ -117,6 +117,19 @@ export class UserData {
   @Column({ type: 'text', array: true, default: [] })
   janta: string[];
 
+  // Supplementation data
+  @Column({ name: 'uses_supplements', type: 'boolean', default: false })
+  usesSupplements: boolean;
+
+  @Column({ name: 'supplements', type: 'text', array: true, default: [] })
+  supplements: string[];
+
+  @Column({ name: 'supplement_schedule', type: 'jsonb', nullable: true })
+  supplementSchedule?: Record<string, string>;
+
+  @Column({ name: 'supplement_brands', type: 'jsonb', nullable: true })
+  supplementBrands?: Record<string, string>;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
