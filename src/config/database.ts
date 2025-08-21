@@ -14,7 +14,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'password',
   database: process.env.DB_NAME || 'nutri_online',
-  synchronize: process.env.NODE_ENV === 'development',
+  synchronize: false, // Temporarily disabled to fix enum issue
   logging: process.env.NODE_ENV === 'development',
   entities: [
     UserData,
