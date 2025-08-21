@@ -53,6 +53,21 @@ export class Diet {
   @Column({ nullable: true })
   originalDietId: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  description: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  trainingFrequency: string;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  activityType: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  macroDistribution: any;
+
+  @Column({ type: 'jsonb', nullable: true })
+  scientificValidation: any;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 

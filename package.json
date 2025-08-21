@@ -11,7 +11,8 @@
     "typeorm": "ts-node ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm migration:generate -- -d src/data-source.ts",
     "migration:run": "npm run typeorm migration:run -- -d src/data-source.ts",
-    "migration:revert": "npm run typeorm migration:revert -- -d src/data-source.ts"
+    "migration:revert": "npm run typeorm migration:revert -- -d src/data-source.ts",
+    "test:scientific": "ts-node src/tests/testScientificPrompt.ts"
   },
   "dependencies": {
     "@fastify/cors": "^8.4.0",
