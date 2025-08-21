@@ -2,68 +2,32 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class UpdateGenderEnum1752200000000 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // First, update the existing values to the new format
+        // Just add new values to the enum without updating existing data
+        // The existing 'm' and 'f' values can stay as they are
+        
+        // Add new values to existing enum if they don't exist
         await queryRunner.query(`
-            UPDATE user_data 
-            SET genero = CASE 
-                WHEN genero = 'm' THEN 'masculino'
-                WHEN genero = 'f' THEN 'feminino'
-                ELSE genero
-            END
+            ALTER TYPE user_data_genero_enum ADD VALUE IF NOT EXISTS 'masculino';
         `);
-
-        // Drop the old enum type and create the new one
         await queryRunner.query(`
-            ALTER TYPE genero RENAME TO genero_old;
+            ALTER TYPE user_data_genero_enum ADD VALUE IF NOT EXISTS 'feminino';
         `);
-
         await queryRunner.query(`
-            CREATE TYPE genero AS ENUM ('masculino', 'feminino', 'outro', 'prefiro_nao_dizer');
+            ALTER TYPE user_data_genero_enum ADD VALUE IF NOT EXISTS 'outro';
         `);
-
         await queryRunner.query(`
-            ALTER TABLE user_data 
-            ALTER COLUMN genero TYPE genero USING genero::text::genero;
+            ALTER TYPE user_data_genero_enum ADD VALUE IF NOT EXISTS 'prefiro_nao_dizer';
         `);
-
-        await queryRunner.query(`
-            DROP TYPE genero_old;
-        `);
+        
+        // Note: We're not updating existing 'm' and 'f' values
+        // They can coexist with the new values
+        // New records will use the new values
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        // Revert back to the old enum
-        await queryRunner.query(`
-            UPDATE user_data 
-            SET genero = CASE 
-                WHEN genero = 'masculino' THEN 'm'
-                WHEN genero = 'feminino' THEN 'f'
-                WHEN genero = 'outro' THEN 'm'
-                WHEN genero = 'prefiro_nao_dizer' THEN 'm'
-                ELSE genero
-            END
-        `);
-
-        await queryRunner.query(`
-            ALTER TYPE genero RENAME TO genero_old;
-        `);
-
-        await queryRunner.query(`
-            CREATE TYPE genero AS ENUM ('m', 'f');
-        `);
-
-        await queryRunner.query(`
-            ALTER TABLE user_data 
-            ALTER COLUMN genero TYPE genero USING 
-            CASE 
-                WHEN genero::text = 'masculino' THEN 'm'::genero
-                WHEN genero::text = 'feminino' THEN 'f'::genero
-                ELSE 'm'::genero
-            END;
-        `);
-
-        await queryRunner.query(`
-            DROP TYPE genero_old;
-        `);
+        // Note: PostgreSQL doesn't support removing enum values
+        // So we can't really revert this migration
+        // The best we can do is document this limitation
+        console.log("Warning: Cannot remove enum values in PostgreSQL. Manual intervention may be required.");
     }
 }
