@@ -100,6 +100,8 @@ export class OpenAIService {
               - Forneça quantidades específicas (ex: "150g", "1 xícara", "2 colheres")
               - Calcule calorias realistas para cada item
               - As alternativas devem ter valor calórico similar aos itens principais
+              - Quando incluir "Salada" ou "Verduras", SEMPRE especifique quais verduras (ex: "Salada de alface, tomate e cenoura", "Mix de verduras cozidas (brócolis, couve-flor e cenoura)")
+              - NUNCA use apenas "Salada" genérica - sempre detalhe os ingredientes
               - Responda sempre em português brasileiro`
             },
             {
